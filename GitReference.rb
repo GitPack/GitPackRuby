@@ -49,9 +49,9 @@ class GitReference
    
       super
    end
-   def clone
+   def clone(interactive=true)
+    
       #Clone the Git Repository
-      
       checks_failed = false
       
       #check if directory already exists
@@ -59,7 +59,7 @@ class GitReference
          puts "Cloning Warning - Directory #{localdir} already exists! Running checks instead"
          checks_failed = self.check()
       else
-         syscmd("git clone #{url} #{localdir} --recursive")
+         syscmd("git clone #{url} #{localdir} --recursive",interactive)
          self.checkout
          if @readonly
             self.set_writeable(false)
@@ -69,7 +69,7 @@ class GitReference
       return checks_failed
    end
    
-   def update(force_clone)
+   def update(force_clone,interactive=true)
       command_failed = false
       # Returns true if falure
       if local_exists
@@ -80,7 +80,7 @@ class GitReference
                self.set_writeable(true)
             end
             self.checkout
-            syscmd("cd #{@localdir} && git pull origin #{branch} --recurse-submodules && git submodule update --init --recursive")
+            syscmd("cd #{@localdir} && git pull origin #{branch} --recurse-submodules && git submodule update --init --recursive",interactive)
             if @readonly
                self.set_writeable(false)
             end
@@ -158,7 +158,10 @@ class GitReference
       return checks_failed
    end
    
-   def syscmd(cmd)
+   def syscmd(cmd,open_xterm=false)
+      if open_xterm
+         cmd = "xterm -geometry 90x30 -e \"#{cmd} || read -p 'Command Failed, see log above. Press return to close window'\""
+      end
       puts ("#{cmd}").color(Colors::YELLOW)
       #Pass env var to Open3
       stdout_str,stderr_str,status = Open3.capture3({"GIT_SSH_COMMAND" => $GIT_SSH_COMMAND},cmd)
@@ -182,6 +185,22 @@ class GitReference
       else
          command_failed = true
       end
+      return command_failed
+   end
+   
+   def rinse(force=false)
+      if !@readonly && !force
+         puts "Error with repository #{@localdir}\n\t Repositories can only be rinsed when in readonly mode"
+         command_failed = true
+      else
+         syscmd("git clean -xdff")
+         syscmd("git reset --hard")
+         syscmd("git submodule foreach --recursive git clean -xdff")
+         syscmd("git submodule foreach --recursive git reset --hard")
+         syscmd("git submodule update --init --recursive")
+      end
+      
+      
       return command_failed
    end
    

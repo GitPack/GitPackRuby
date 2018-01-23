@@ -34,7 +34,16 @@ class GitCollection
          puts ("\n"+"="*60+"\nWARNING DURING CLONING!\n\tSome repositories already existed and failed checks.\n\tReview this log or run 'gpack check' to see detailed information\n"+"="*60).color(Colors::RED)
       end
    end
-   def clean()
+   def rinse()
+      puts "\nRinsing Repositories....."
+      raise_warning = ref_loop(refs) { |ref|
+         ref.rinse
+      }
+      if raise_warning
+         puts ("\n"+"="*60+"\nWARNING DURING Rinse!\n"+"="*60).color(Colors::RED)
+      end
+   end
+   def reinstall()
       puts "This will force remove repositories and repopulate. Any local data will be lost!!!\nContinue (y/n)"
       cont = $stdin.gets.chomp
       if cont == "y"

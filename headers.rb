@@ -3,6 +3,7 @@ $VERBOSE=nil
 
 require 'tempfile'
 require 'open3'
+require 'yaml'
 
 $gbundle_file = 'GpackRepos'
 $identifier = "gpack"
