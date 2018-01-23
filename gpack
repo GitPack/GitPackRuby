@@ -1,0 +1,13 @@
+#!/bin/bash
+
+url=http://nhlinear/ast/clio-template/raw/master/GitManager/gpack_concat.rb
+
+#Pull the script from the main repo into a temp file
+tempfile=$(mktemp /tmp/gpack_concat_XXXXX.rb)
+wget -O $tempfile $url &> /dev/null
+
+if [ ! -e $tempfile ]; then
+   echo "Error, was not able to fetch file $url. Please contact acook@allegromicro.com"
+else
+   ruby $tempfile "$@"
+fi
