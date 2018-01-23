@@ -193,11 +193,14 @@ class GitReference
          puts "Error with repository #{@localdir}\n\t Repositories can only be rinsed when in readonly mode"
          command_failed = true
       else
-         syscmd("git clean -xdff")
-         syscmd("git reset --hard")
-         syscmd("git submodule foreach --recursive git clean -xdff")
-         syscmd("git submodule foreach --recursive git reset --hard")
-         syscmd("git submodule update --init --recursive")
+         self.set_writeable(true)
+         syscmd("cd #{@localdir} && " \
+         "git clean -xdff && "  \
+         "git reset --hard && " \
+         "git submodule foreach --recursive git clean -xdff && " \
+         "git submodule foreach --recursive git reset --hard && " \
+         "git submodule update --init --recursive")
+         self.set_writeable(false)
       end
       
       
