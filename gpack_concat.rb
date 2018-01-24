@@ -38,7 +38,7 @@ README=%{
 GitPack
 =====
 
-Python based git repository manager. Conceptually simular to a package manager like pip, rubygems, ect. GitPack handles the distrubuting of repositories without being tied to a specific language; although it does use python to execute commands. It specifically is designed to control multiple git repository dependancies on a multiple user project. The default behavior is to clone the repositories in a read-only mode, however this can be configured.
+Ruby Implementation of git repository manager. Conceptually simular to a package manager like pip, rubygems, ect. GitPack handles the distrubuting of repositories without being tied to a specific language; although it does use python to execute commands. It specifically is designed to control multiple git repository dependancies on a multiple user project. The default behavior is to clone the repositories in a read-only mode, however this can be configured.
 
 * Clones multiple repositories in parallel.
 * Controls read-only permissions on cloned repositories.
@@ -139,45 +139,25 @@ Core Commands
    Checks if all repos are clean and match GpackRepos
 **status**
    Runs through each repo and reports the result of git status
-**clean [repo]**
-   Force cleans local repo directory with git clean -xdff
 **help**
    Displays this message
-**install [-nogui]**
+**install**
    Clones repos in repo directory
    -nogui doesn't open terminals when installing
-**uninstall [repo] [-f]**
+**uninstall [-f]**
    Removes all local repositories listed in the Repositories File
    Add -f to force remove all repositories
-**reinstall [repo] [-f]**
+**reinstall **
    The same as running uninstall then reinstall
 **list**
    List all repos in GpackRepos file
-**lock [repo]**
+**lock **
    Makes repo read-only, removes from .gpacklock file
-**unlock [repo]**
+**unlock **
    Allows writing to repo, appends to .gpacklock file
-**purge**
-   Removes all repos and re-clones from remote
-**update [repo]**
-   Cleans given repo, resetting it to the default
+**update [-f]**
+   Updates the repositories -f will install if not already installed
 
-Git Commands
-------------
-
-**branch [repo]**
-   Checks branch on current repo
-**checkout [repo]**
-   Prompts user for branch to checkout. If the branch doesn't exist, ask if
-   user wants to create a new one
-**push [repo]**
-   Pushes local repo changes to origin
-   Won't push if on master
-**pull [repo]**
-   Pulls changes to repo
-**tag [repo]**
-   Asks user which tag to checkout for a repo. If given tag doesn't exists,
-   ask for a new tag to create
 Details
 -----------
 * Maintains a clean local repository directory by parsing GpackRepos for user-defined repositores that they wish to clone.
@@ -279,7 +259,7 @@ class GitReference
             if @readonly
                self.set_writeable(true)
             end
-            syscmd("cd #{@localdir} && git fetch origin",interactive)
+            syscmd("git fetch origin",interactive)
             self.checkout
             syscmd("git submodule update --init --recursive")
             if @readonly
@@ -304,7 +284,7 @@ class GitReference
       else
          checkout_cmd = "checkout #{@branch}" # Direct checkout the tag/comit
       end
-      syscmd("cd #{@localdir} && git #{checkout_cmd} && git submodule update --init --recursive")  
+      syscmd("git #{checkout_cmd} && git submodule update --init --recursive")  
    end
    
    def set_writeable(tf)
@@ -393,7 +373,10 @@ class GitReference
       return checks_failed
    end
    
-   def syscmd(cmd,open_xterm=false)
+   def syscmd(cmd,open_xterm=false,cd_first=true)
+      if cd_first
+         cmd = "cd #{@localdir} && #{cmd}"
+      end
       if open_xterm
          cmd = "xterm -geometry 90x30 -e \"#{cmd} || echo 'Command Failed, see log above. Press CTRL+C to close window' && sleep infinity\""
       end
@@ -442,7 +425,7 @@ class GitReference
          command_failed = true
       else
          self.set_writeable(true)
-         status = syscmd("cd #{@localdir} && " \
+         status = syscmd( \
          "git fetch origin && " \
          "git clean -xdff && "  \
          "git reset --hard && " \
@@ -494,7 +477,7 @@ class GitReference
    end
    def status
       self.print()
-      syscmd("cd #{@localdir} && git status && echo 'Git Branch' && git branch && echo 'Git SHA' && git rev-parse HEAD")
+      syscmd("git status && echo 'Git Branch' && git branch && echo 'Git SHA' && git rev-parse HEAD")
       return false
    end
 

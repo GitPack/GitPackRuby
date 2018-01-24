@@ -84,7 +84,7 @@ class GitReference
             if @readonly
                self.set_writeable(true)
             end
-            syscmd("cd #{@localdir} && git fetch origin",interactive)
+            syscmd("git fetch origin",interactive)
             self.checkout
             syscmd("git submodule update --init --recursive")
             if @readonly
@@ -109,7 +109,7 @@ class GitReference
       else
          checkout_cmd = "checkout #{@branch}" # Direct checkout the tag/comit
       end
-      syscmd("cd #{@localdir} && git #{checkout_cmd} && git submodule update --init --recursive")  
+      syscmd("git #{checkout_cmd} && git submodule update --init --recursive")  
    end
    
    def set_writeable(tf)
@@ -198,7 +198,10 @@ class GitReference
       return checks_failed
    end
    
-   def syscmd(cmd,open_xterm=false)
+   def syscmd(cmd,open_xterm=false,cd_first=true)
+      if cd_first
+         cmd = "cd #{@localdir} && #{cmd}"
+      end
       if open_xterm
          cmd = "xterm -geometry 90x30 -e \"#{cmd} || echo 'Command Failed, see log above. Press CTRL+C to close window' && sleep infinity\""
       end
@@ -247,7 +250,7 @@ class GitReference
          command_failed = true
       else
          self.set_writeable(true)
-         status = syscmd("cd #{@localdir} && " \
+         status = syscmd( \
          "git fetch origin && " \
          "git clean -xdff && "  \
          "git reset --hard && " \
@@ -299,7 +302,7 @@ class GitReference
    end
    def status
       self.print()
-      syscmd("cd #{@localdir} && git status && echo 'Git Branch' && git branch && echo 'Git SHA' && git rev-parse HEAD")
+      syscmd("git status && echo 'Git Branch' && git branch && echo 'Git SHA' && git rev-parse HEAD")
       return false
    end
 
