@@ -6,7 +6,7 @@ fname="gpack_concat.rb"
 
 #Make the readme
 
-README="README=%{\n"+File.read("./README.rst")+"\n}"
+README="README=%{\n"+File.read("./README.rst")+"\n}\n"
 File.write('./gpack_readme.rb', README)
 
 

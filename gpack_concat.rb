@@ -180,7 +180,8 @@ Developers
 * Andrew Porter https://github.com/AndrewRPorter
 * Aaron Cook https://github.com/cookacounty
 
-}module HasProperties
+}
+module HasProperties
    attr_accessor :props
    attr_accessor :require_attrs
    
