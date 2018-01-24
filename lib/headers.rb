@@ -9,13 +9,13 @@ require 'digest/sha1'
 require 'rdoc'
 require 'find'
 require 'fileutils'
+require 'optparse'
 
-$gbundle_file = 'GpackRepos'
-$identifier = "gpack"
-$use_parallel = false
-$remote_key = false
-$GIT_SSH_COMMAND = false
-
+$SETTINGS = { \
+   "core" => {"repofile" => "GpackRepos", "force" => false, "parallel" => true},
+   "gui" => {"persist" => false, "show" => true},
+   "ssh" => {"key" => false, "command" => false}
+}
 
 class Colors
    COLOR1 = "\e[1;36;40m"

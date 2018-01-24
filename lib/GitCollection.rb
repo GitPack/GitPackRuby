@@ -33,6 +33,8 @@ class GitCollection
       if raise_warning
          puts ("\n"+"="*60+"\nWARNING DURING CLONING!\n\tSome repositories already existed and failed checks.\n\tReview this log or run 'gpack check' to see detailed information\n"+"="*60).color(Colors::RED)
       end
+      print()
+      check()
    end
    def rinse()
       puts "\nRinsing Repositories....."
@@ -44,17 +46,8 @@ class GitCollection
       end
    end
    def reinstall()
-      puts "This will force remove repositories and repopulate. Any local data will be lost!!!\nContinue (y/n)"
-      cont = $stdin.gets.chomp
-      if cont == "y"
-         puts "Forcing Clean"
-         remove(true)
-         clone()
-         set_writeable(false)
-      else
-         puts "Abort Clean"
-      end
-   
+      remove()
+      clone()   
    end
    def check()
       puts "\nChecking Local Repositories....."
@@ -78,21 +71,35 @@ class GitCollection
          puts ("\n"+"="*60+"\nWARNINGS FOUND DURING CHECK!\n\tReview this log to see detailed information\n"+"="*60).color(Colors::RED)
       end
    end
-   def update(force_clone=false)
+   def update()
       puts "\nUpdating Repositories.....\n\n"
       puts "Please be patient, this can take some time if pulling large commits.....".color(Colors::GREEN)
       raise_warning = ref_loop(refs) { |ref|
-         ref.update(force_clone)
+         ref.update()
       }
       if raise_warning
          puts ("\n"+"="*60+"\nWARNING DURING UPDATE!\n\tSome repositories failed checks and were not updated.\n\tReview this log or run 'gpack check' to see detailed information\n"+"="*60).color(Colors::RED)
       end
    end
-   def remove(force=false)
-      puts "\nRemoving Local Repositories....."
-      raise_warning = ref_loop(refs) { |ref|
-         ref.remove(force)
-      }
+   def remove()
+      puts "This will force remove repositories and repopulate. Any local data will be lost!!!\nContinue (y/n)"
+      if $SETTINGS["core"]["force"] == true
+         do_remove = true
+      else
+            cont = $stdin.gets.chomp
+            do_remove = cont == "y"
+      end
+      
+      if do_remove
+         puts "\nRemoving Local Repositories....."
+
+         raise_warning = ref_loop(refs) { |ref|
+            ref.remove()
+         }
+      else
+         puts "Abort Uninstall"
+      end
+      
       if raise_warning
          puts ("\n"+"="*60+"\nWARNINGS FOUND DURING REMOVAL!\n\tReview this log to see detailed information\n"+"="*60).color(Colors::RED)
       end
@@ -105,7 +112,7 @@ class GitCollection
    
    
    def ref_loop(refs, parallel_override=false)
-      if $use_parallel && !parallel_override
+      if $SETTINGS["core"]["parallel"] && !parallel_override
          read, write = IO.pipe
          Parallel.map(@refs) do |ref|
 

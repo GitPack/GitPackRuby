@@ -12,26 +12,38 @@ puts "Using Git Executable #{`which git`}"
 #   exit
 #end
 
-grepos = parse_gpackrepos($gbundle_file)
+grepos = parse_gpackrepos()
+
+
+OptionParser.new do |opts|
+  opts.on("-nogui") do
+    $SETTINGS["gui"]["show"] = false
+  end
+  opts.on("-f") do
+    $SETTINGS["core"]["force"] = true
+  end
+  opts.on("-persist","-p") do
+    $SETTINGS["gui"]["persist"] = true
+  end
+  opts.on("-s") do |v|
+    $SETTINGS["core"]["parallel"] = false
+  end
+end.parse!
+
+puts $SETTINGS
 
 case ARGV[0]
    when "install"
       grepos.clone
+      grepos.print
+      grepos.check
    when "update"
       grepos.print
-      if ARGV[1] == "-f"
-         grepos.update(true)
-      else
-         grepos.update(false)
-      end
+      grepos.update()
    when "check"
       grepos.check
    when "uninstall"
-      if ARGV[1] == "-f"
-         grepos.remove(true)
-      else
-         grepos.remove(false)
-      end
+      grepos.remove()
       `rm -f .gpackunlock`
    when "archive"
       grepos.archive
@@ -55,6 +67,6 @@ case ARGV[0]
 end
 
 # Close the SSH tempfile
-if $remote_key
-   $remote_key.close
+if $SETTINGS["ssh"]["key"]
+   $SETTINGS["ssh"]["key"].close
 end

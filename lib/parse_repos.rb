@@ -1,8 +1,9 @@
 
 ## Parse the GpackRepose file
 
-def parse_gpackrepos(grepos_file)
+def parse_gpackrepos()
 
+grepos_file = $SETTINGS["core"]["repofile"]
 
 ## Options for YAML File
 required_keys = ["url","localdir","branch"]
@@ -37,17 +38,21 @@ yml_file.each do |key,entry|
             when "remote_key"
                #SSH KEY stuff
                key_url = centry
-               $remote_key = Tempfile.new('gpack_ssh')
+               remote_key = Tempfile.new('gpack_ssh')
                #`wget -O #{$remote_key.path} #{key_url} &> /dev/null`
                
                begin
                   download = open(key_url)
-                  IO.copy_stream(download, $remote_key.path)
+                  IO.copy_stream(download, remote_key.path)
                rescue
                   puts "Error with URL #{key_url}\nEnsure this is a valid url and can be reached"
                   raise
                end
-               $GIT_SSH_COMMAND="ssh -i #{$remote_key.path} -q -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no" 
+               ssh_cmd="ssh -i #{remote_key.path} -q -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no" 
+               
+               $SETTINGS["ssh"]["key"] = remote_key
+               $SETTINGS["ssh"]["cmd"] = ssh_cmd
+               
          end
          
       end

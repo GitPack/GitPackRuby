@@ -49,7 +49,7 @@ class GitReference
    
       super
    end
-   def clone(interactive=true)
+   def clone()
     
       #Clone the Git Repository
       checks_failed = false
@@ -59,13 +59,12 @@ class GitReference
          puts "Cloning Warning - Directory #{localdir} already exists! Running checks instead"
          checks_failed = self.check()
       else
-         status = syscmd("git clone #{url} #{localdir} --recursive",interactive)
+         status = syscmd("git clone #{url} #{localdir} --recursive",true,false)
+         self.checkout
+         if @readonly
+            self.set_writeable(false)
+         end
          if status != 0
-            self.checkout
-            if @readonly
-               self.set_writeable(false)
-            end
-         else
             checks_failed = true
          end
          
@@ -74,7 +73,8 @@ class GitReference
       return checks_failed
    end
    
-   def update(force_clone,interactive=true)
+   def update()
+      force_clone = $SETTINGS["core"]["force"]
       command_failed = false
       # Returns true if falure
       if local_exists
@@ -84,7 +84,7 @@ class GitReference
             if @readonly
                self.set_writeable(true)
             end
-            syscmd("git fetch origin",interactive)
+            syscmd("git fetch origin",true)
             self.checkout
             syscmd("git submodule update --init --recursive")
             if @readonly
@@ -124,14 +124,16 @@ class GitReference
       
       file_paths = []
       ignore_paths = []
-      Find.find(@localdir) do |path|
-         # Ignore .git folder
-         if path.match(/.*\/.git$/) || path.match(/.*\/.git\/.*/)
-            ignore_paths << path
-         else
-            file_paths << path
-            #FileUtils.chmod 'a-w', path
-            FileUtils.chmod(perms,path) if File.exist?(path)
+      if local_exists()
+         Find.find(@localdir) do |path|
+            # Ignore .git folder
+            if path.match(/.*\/.git$/) || path.match(/.*\/.git\/.*/)
+               ignore_paths << path
+            else
+               file_paths << path
+               #FileUtils.chmod 'a-w', path
+               FileUtils.chmod(perms,path) if File.exist?(path)
+            end
          end
       end
       
@@ -202,13 +204,17 @@ class GitReference
       if cd_first
          cmd = "cd #{@localdir} && #{cmd}"
       end
-      if open_xterm
-         cmd = "xterm -geometry 90x30 -e \"#{cmd} || echo 'Command Failed, see log above. Press CTRL+C to close window' && sleep infinity\""
+      if open_xterm && $SETTINGS["gui"]["show"]
+         if $SETTINGS["gui"]["persist"]
+            hold_opt = "-hold"
+         end
+         cmd = "xterm #{hold_opt} -geometry 90x30 -e \"#{cmd} || echo 'Command Failed, see log above. Press CTRL+C to close window' && sleep infinity\""
       end
       cmd_id = Digest::SHA1.hexdigest(cmd).to_s[0..4]
       #Pass env var to Open3
-      if $GIT_SSH_COMMAND
-         args = {"GIT_SSH_COMMAND" => $GIT_SSH_COMMAND}
+      ssh_cmd = $SETTINGS["ssh"]["cmd"]
+      if ssh_cmd
+         args = {"GIT_SSH_COMMAND" => ssh_cmd}
       else
          args = {}
       end
@@ -229,14 +235,15 @@ class GitReference
       return `cd #{@localdir} && #{cmd_str}`.chomp
    end
    
-   def remove(force)
+   def remove()
+      force = $SETTINGS["core"]["force"]
       command_failed = false
       if force || !self.check
          puts "Removing local repository #{@localdir}"
          if @readonly
             self.set_writeable(true)
          end
-         syscmd("rm -rf #{@localdir}")
+         syscmd("rm -rf #{@localdir}",false,false)
          command_failed = false
       else
          command_failed = true
@@ -244,7 +251,8 @@ class GitReference
       return command_failed
    end
    
-   def rinse(force=false)
+   def rinse()
+      force = $SETTINGS["core"]["force"]
       if !@readonly && !force
          puts "Error with repository #{@localdir}\n\t Repositories can only be rinsed when in readonly mode"
          command_failed = true

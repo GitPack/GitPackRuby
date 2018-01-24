@@ -9,13 +9,13 @@ require 'digest/sha1'
 require 'rdoc'
 require 'find'
 require 'fileutils'
+require 'optparse'
 
-$gbundle_file = 'GpackRepos'
-$identifier = "gpack"
-$use_parallel = false
-$remote_key = false
-$GIT_SSH_COMMAND = false
-
+$SETTINGS = { \
+   "core" => {"repofile" => "GpackRepos", "force" => false, "parallel" => true},
+   "gui" => {"persist" => false, "show" => true},
+   "ssh" => {"key" => false, "command" => false}
+}
 
 class Colors
    COLOR1 = "\e[1;36;40m"
@@ -224,7 +224,7 @@ class GitReference
    
       super
    end
-   def clone(interactive=true)
+   def clone()
     
       #Clone the Git Repository
       checks_failed = false
@@ -234,13 +234,12 @@ class GitReference
          puts "Cloning Warning - Directory #{localdir} already exists! Running checks instead"
          checks_failed = self.check()
       else
-         status = syscmd("git clone #{url} #{localdir} --recursive",interactive)
+         status = syscmd("git clone #{url} #{localdir} --recursive",true,false)
+         self.checkout
+         if @readonly
+            self.set_writeable(false)
+         end
          if status != 0
-            self.checkout
-            if @readonly
-               self.set_writeable(false)
-            end
-         else
             checks_failed = true
          end
          
@@ -249,7 +248,8 @@ class GitReference
       return checks_failed
    end
    
-   def update(force_clone,interactive=true)
+   def update()
+      force_clone = $SETTINGS["core"]["force"]
       command_failed = false
       # Returns true if falure
       if local_exists
@@ -259,7 +259,7 @@ class GitReference
             if @readonly
                self.set_writeable(true)
             end
-            syscmd("git fetch origin",interactive)
+            syscmd("git fetch origin",true)
             self.checkout
             syscmd("git submodule update --init --recursive")
             if @readonly
@@ -299,14 +299,16 @@ class GitReference
       
       file_paths = []
       ignore_paths = []
-      Find.find(@localdir) do |path|
-         # Ignore .git folder
-         if path.match(/.*\/.git$/) || path.match(/.*\/.git\/.*/)
-            ignore_paths << path
-         else
-            file_paths << path
-            #FileUtils.chmod 'a-w', path
-            FileUtils.chmod(perms,path) if File.exist?(path)
+      if local_exists()
+         Find.find(@localdir) do |path|
+            # Ignore .git folder
+            if path.match(/.*\/.git$/) || path.match(/.*\/.git\/.*/)
+               ignore_paths << path
+            else
+               file_paths << path
+               #FileUtils.chmod 'a-w', path
+               FileUtils.chmod(perms,path) if File.exist?(path)
+            end
          end
       end
       
@@ -377,13 +379,17 @@ class GitReference
       if cd_first
          cmd = "cd #{@localdir} && #{cmd}"
       end
-      if open_xterm
-         cmd = "xterm -geometry 90x30 -e \"#{cmd} || echo 'Command Failed, see log above. Press CTRL+C to close window' && sleep infinity\""
+      if open_xterm && $SETTINGS["gui"]["show"]
+         if $SETTINGS["gui"]["persist"]
+            hold_opt = "-hold"
+         end
+         cmd = "xterm #{hold_opt} -geometry 90x30 -e \"#{cmd} || echo 'Command Failed, see log above. Press CTRL+C to close window' && sleep infinity\""
       end
       cmd_id = Digest::SHA1.hexdigest(cmd).to_s[0..4]
       #Pass env var to Open3
-      if $GIT_SSH_COMMAND
-         args = {"GIT_SSH_COMMAND" => $GIT_SSH_COMMAND}
+      ssh_cmd = $SETTINGS["ssh"]["cmd"]
+      if ssh_cmd
+         args = {"GIT_SSH_COMMAND" => ssh_cmd}
       else
          args = {}
       end
@@ -404,14 +410,15 @@ class GitReference
       return `cd #{@localdir} && #{cmd_str}`.chomp
    end
    
-   def remove(force)
+   def remove()
+      force = $SETTINGS["core"]["force"]
       command_failed = false
       if force || !self.check
          puts "Removing local repository #{@localdir}"
          if @readonly
             self.set_writeable(true)
          end
-         syscmd("rm -rf #{@localdir}")
+         syscmd("rm -rf #{@localdir}",false,false)
          command_failed = false
       else
          command_failed = true
@@ -419,7 +426,8 @@ class GitReference
       return command_failed
    end
    
-   def rinse(force=false)
+   def rinse()
+      force = $SETTINGS["core"]["force"]
       if !@readonly && !force
          puts "Error with repository #{@localdir}\n\t Repositories can only be rinsed when in readonly mode"
          command_failed = true
@@ -567,6 +575,8 @@ class GitCollection
       if raise_warning
          puts ("\n"+"="*60+"\nWARNING DURING CLONING!\n\tSome repositories already existed and failed checks.\n\tReview this log or run 'gpack check' to see detailed information\n"+"="*60).color(Colors::RED)
       end
+      print()
+      check()
    end
    def rinse()
       puts "\nRinsing Repositories....."
@@ -578,17 +588,8 @@ class GitCollection
       end
    end
    def reinstall()
-      puts "This will force remove repositories and repopulate. Any local data will be lost!!!\nContinue (y/n)"
-      cont = $stdin.gets.chomp
-      if cont == "y"
-         puts "Forcing Clean"
-         remove(true)
-         clone()
-         set_writeable(false)
-      else
-         puts "Abort Clean"
-      end
-   
+      remove()
+      clone()   
    end
    def check()
       puts "\nChecking Local Repositories....."
@@ -612,21 +613,35 @@ class GitCollection
          puts ("\n"+"="*60+"\nWARNINGS FOUND DURING CHECK!\n\tReview this log to see detailed information\n"+"="*60).color(Colors::RED)
       end
    end
-   def update(force_clone=false)
+   def update()
       puts "\nUpdating Repositories.....\n\n"
       puts "Please be patient, this can take some time if pulling large commits.....".color(Colors::GREEN)
       raise_warning = ref_loop(refs) { |ref|
-         ref.update(force_clone)
+         ref.update()
       }
       if raise_warning
          puts ("\n"+"="*60+"\nWARNING DURING UPDATE!\n\tSome repositories failed checks and were not updated.\n\tReview this log or run 'gpack check' to see detailed information\n"+"="*60).color(Colors::RED)
       end
    end
-   def remove(force=false)
-      puts "\nRemoving Local Repositories....."
-      raise_warning = ref_loop(refs) { |ref|
-         ref.remove(force)
-      }
+   def remove()
+      puts "This will force remove repositories and repopulate. Any local data will be lost!!!\nContinue (y/n)"
+      if $SETTINGS["core"]["force"] == true
+         do_remove = true
+      else
+            cont = $stdin.gets.chomp
+            do_remove = cont == "y"
+      end
+      
+      if do_remove
+         puts "\nRemoving Local Repositories....."
+
+         raise_warning = ref_loop(refs) { |ref|
+            ref.remove()
+         }
+      else
+         puts "Abort Uninstall"
+      end
+      
       if raise_warning
          puts ("\n"+"="*60+"\nWARNINGS FOUND DURING REMOVAL!\n\tReview this log to see detailed information\n"+"="*60).color(Colors::RED)
       end
@@ -639,7 +654,7 @@ class GitCollection
    
    
    def ref_loop(refs, parallel_override=false)
-      if $use_parallel && !parallel_override
+      if $SETTINGS["core"]["parallel"] && !parallel_override
          read, write = IO.pipe
          Parallel.map(@refs) do |ref|
 
@@ -1252,8 +1267,9 @@ end
 
 ## Parse the GpackRepose file
 
-def parse_gpackrepos(grepos_file)
+def parse_gpackrepos()
 
+grepos_file = $SETTINGS["core"]["repofile"]
 
 ## Options for YAML File
 required_keys = ["url","localdir","branch"]
@@ -1288,17 +1304,21 @@ yml_file.each do |key,entry|
             when "remote_key"
                #SSH KEY stuff
                key_url = centry
-               $remote_key = Tempfile.new('gpack_ssh')
+               remote_key = Tempfile.new('gpack_ssh')
                #`wget -O #{$remote_key.path} #{key_url} &> /dev/null`
                
                begin
                   download = open(key_url)
-                  IO.copy_stream(download, $remote_key.path)
+                  IO.copy_stream(download, remote_key.path)
                rescue
                   puts "Error with URL #{key_url}\nEnsure this is a valid url and can be reached"
                   raise
                end
-               $GIT_SSH_COMMAND="ssh -i #{$remote_key.path} -q -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no" 
+               ssh_cmd="ssh -i #{remote_key.path} -q -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no" 
+               
+               $SETTINGS["ssh"]["key"] = remote_key
+               $SETTINGS["ssh"]["cmd"] = ssh_cmd
+               
          end
          
       end
@@ -1346,26 +1366,38 @@ puts "Using Git Executable #{`which git`}"
 #   exit
 #end
 
-grepos = parse_gpackrepos($gbundle_file)
+grepos = parse_gpackrepos()
+
+
+OptionParser.new do |opts|
+  opts.on("-nogui") do
+    $SETTINGS["gui"]["show"] = false
+  end
+  opts.on("-f") do
+    $SETTINGS["core"]["force"] = true
+  end
+  opts.on("-persist","-p") do
+    $SETTINGS["gui"]["persist"] = true
+  end
+  opts.on("-s") do |v|
+    $SETTINGS["core"]["parallel"] = false
+  end
+end.parse!
+
+puts $SETTINGS
 
 case ARGV[0]
    when "install"
       grepos.clone
+      grepos.print
+      grepos.check
    when "update"
       grepos.print
-      if ARGV[1] == "-f"
-         grepos.update(true)
-      else
-         grepos.update(false)
-      end
+      grepos.update()
    when "check"
       grepos.check
    when "uninstall"
-      if ARGV[1] == "-f"
-         grepos.remove(true)
-      else
-         grepos.remove(false)
-      end
+      grepos.remove()
       `rm -f .gpackunlock`
    when "archive"
       grepos.archive
@@ -1389,6 +1421,6 @@ case ARGV[0]
 end
 
 # Close the SSH tempfile
-if $remote_key
-   $remote_key.close
+if $SETTINGS["ssh"]["key"]
+   $SETTINGS["ssh"]["key"].close
 end
