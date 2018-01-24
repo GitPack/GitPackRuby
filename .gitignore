@@ -1,3 +1,4 @@
-/testdir/repos*
+/testdir/repos
+/testdir/testrepos
 /ssh_key
-/testrepos
+
