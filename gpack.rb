@@ -43,6 +43,7 @@ case ARGV[0]
       grepos.set_writeable(true)
    when "rinse"
       grepos.rinse
+      grepos.check # check should be clean
    when "reinstall"
       grepos.reinstall
    when "status"

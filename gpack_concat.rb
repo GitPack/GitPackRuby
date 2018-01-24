@@ -3,9 +3,18 @@ $VERBOSE=nil
 
 require 'tempfile'
 require 'open3'
+require 'yaml'
+require 'open-uri'
+require 'digest/sha1'
+require 'rdoc'
+require 'find'
+require 'fileutils'
 
 $gbundle_file = 'GpackRepos'
 $identifier = "gpack"
+$use_parallel = false
+$remote_key = false
+$GIT_SSH_COMMAND = false
 
 
 class Colors
@@ -25,88 +34,153 @@ class String
    end
 end
 README=%{
-Git Package Manager
-   Uses a single file to describe a list of repositories that should be populated in a local area.
-   These repositories are automatically cloned into a specified local folder.
-   Also allows these local repositories to be updated as a group and checked for consistancy.
-   The concept for Git Package Manager was based on Ruby Gemfiles
+=====
+GitPack
+=====
 
-Usage
-   #{$identifier} [OPTION]
-   
-Primary Options
+Python based git repository manager. Conceptually simular to a package manager like pip, rubygems, ect. GitPack handles the distrubuting of repositories without being tied to a specific language; although it does use python to execute commands. It specifically is designed to control multiple git repository dependancies on a multiple user project. The default behavior is to clone the repositories in a read-only mode, however this can be configured.
 
-   help
-      Display this message
-      
-   install
-      Clone the repositories listed in the Repositories File into the local area
-      Will return a warning if these repositories exist and fail consistancy checks
-      Install assumes you can clone automatically from a given URL. 
-         If your SSH key is not setup on the remote, this command will fail!
-         
-   update
-      Pulls the repositories listed in the Repositories File.
-      If a repository fails the consitancy check run before the update, it will not be updated and a warning is given.
-      Adding a "-f" to this option will cause the update to 
-         clone the repository if it does not already exist "#{$identifier} update -f"
-         
-   uninstall
-      Removes the local repositories listed in the Repositories File.
-      The repositories are only removed if they pass the consistancy check before the remove
-      Add "-f" to force uninstall without consistancy checks 
-         "#{$identifier} uninstall -f" (Doing so may lose local data)
-         
-   archive
-      Create a tar.gz of the local repositories listed in the Repositories File. 
-      Name of the repo will be called
-         \#{localdir}_\#{git_rev}.tar.gz
-            localdir is the local directory
-            git_rev is the short name for the current git revision (git rev-parse --short HEAD)
-            
-   clean
-      Force cleaning of the repositories. Local data will be removed and repopulated.
-      Equivalent to running
-         uninstall -f
-         install
-            
-Advanced Options
+* Clones multiple repositories in parallel.
+* Controls read-only permissions on cloned repositories.
+* Pulls multiple repositoires in parallel.
+* Easy clean of repositories that do not have a clean git status.
+* Submodule compatible
 
-   lock
-      Make the repository read only (default).
-      
-   unlock
-      Make the repositories editable. A file called .gpacklock is created by this command
-      and a chmod is run
-      
-Package Manger Repositories File "#{$gbundle_file}"
+Structure
+-----
+* ./gpack - The main exectuable. GitPack is self updating and downloads the latest ver. of master from this repository.
+* ./GpackRepos - The main file that GitPack uses to store information about remote repositories URL, the local desitinations where the repositories should be cloned, and user configuration options like read-only, SSH keys, ect. This file is in YAML format
+* ./.gpacklock - Used to store the repository read-only status.
 
-   This file describes the information for each repository that should be cloned and updated locally.
-   Each line is a seperate local repository and can have several 
-      fields that must be specified along with some optional fields
+Dependancies
+-----
+* Tested in Python 3.4.5
+
+Setup
+-----
+Download the gpack bash script to a local directory and make the file executable:
+    
+.. code::
+
+    wget https://raw.githubusercontent.com/GitPack/GitPack/master/gpack
+    chmod u+x ./gpack
+
+Add repos to GpackRepos file using gpack, an example is shown below:
+
+.. code::
+
+    ./gpack add git@github.com:GitPack/GitPack.git ./GitPack
+
+Basic Usage
+-----
+
+Installs all repos in GpackRepos file:
+
+.. code::
+
+    ./gpack install
+
+Update installed repos in GpackRepos file:
+
+.. code::
+    
+    ./gpack update
+
+
+GpackRepos
+----------
+
+.. code-block:: bash
+
+    config:
+        remote_key: http://nhlinear.eng.allegro.msad/ast/clio-template/raw/master/GitManager/ssh_key/id_rsa
+        lock: true
+
+    test1:
+        url: git@allegrogit.allegro.msad:aporter/test1.git
+        local_dir: ./repos/test1
+        branch: master
+
+    test2:
+        url: git@allegrogit.allegro.msad:aporter/test2.git
+        local_dir: ./repos/test2
+        branch: master
+
+    test3:
+        url: git@allegrogit.allegro.msad:aporter/test3.git
+        local_dir: ./repos/test3
+        branch: master
+
+    name:
+        branch: feat/gui
+        local_dir: ./repos/iogen
+        url: git@allegrogit.allegro.msad:AST-digital/iogen.git
+
+
+Core Commands
+-------------
+
+**add [url] [directory] [branch]**
+   Adds a repo to the GpackRepos file given ssh URL and local directory
+   relative to current directory
+**check**
+   Checks if all repos are clean and match GpackRepos
+**status**
+   Runs through each repo and reports the result of git status
+**clean [repo]**
+   Force cleans local repo directory with git clean -xdff
+**help**
+   Displays this message
+**install [-nogui]**
+   Clones repos in repo directory
+   -nogui doesn't open terminals when installing
+**uninstall [repo] [-f]**
+   Removes all local repositories listed in the Repositories File
+   Add -f to force remove all repositories
+**reinstall [repo] [-f]**
+   The same as running uninstall then reinstall
+**list**
+   List all repos in GpackRepos file
+**lock [repo]**
+   Makes repo read-only, removes from .gpacklock file
+**unlock [repo]**
+   Allows writing to repo, appends to .gpacklock file
+**purge**
+   Removes all repos and re-clones from remote
+**update [repo]**
+   Cleans given repo, resetting it to the default
+
+Git Commands
+------------
+
+**branch [repo]**
+   Checks branch on current repo
+**checkout [repo]**
+   Prompts user for branch to checkout. If the branch doesn't exist, ask if
+   user wants to create a new one
+**push [repo]**
+   Pushes local repo changes to origin
+   Won't push if on master
+**pull [repo]**
+   Pulls changes to repo
+**tag [repo]**
+   Asks user which tag to checkout for a repo. If given tag doesn't exists,
+   ask for a new tag to create
+Details
+-----------
+* Maintains a clean local repository directory by parsing GpackRepos for user-defined repositores that they wish to clone.
+* By default, all cloned repositories have no write access.
+
+Future Improvements
+-----
+* GitPack is not Git LFS compatible at the moment. Merge requests with this feature would be accepted.
    
-   Required Specifiers
-      :url
-         The URL from which to clone from and pull. This will be set to "origin" automatically by git
-      :localdir
-         The local directory to clone the repository into
-      :branch
-         The branch to checkout. This can also be a tag or commit (anything that is recognized by git checkout)
-   
-   Optional Specifiers
-      :readonly
-         Repository will be made readonly. There is a slight performance impact since the directory
-            file permissions are changed each time update is called.
-      
-   
-   Example
-      "#{$gbundle_file}" >>
-         # Example git repo bundle file
-         gpack :url => 'git@nhlinear:ast/simulink_models.git', :localdir => './simulink_models', :branch => 'master'
-         gpack :url => 'git@nhlinear:ast/digital_rtl.git',     :localdir => './digital_rtl',     :branch => 'master'
-      << EOF
-}
-module HasProperties
+Developers
+-----
+* Andrew Porter https://github.com/AndrewRPorter
+* Aaron Cook https://github.com/cookacounty
+
+}module HasProperties
    attr_accessor :props
    attr_accessor :require_attrs
    
@@ -157,9 +231,9 @@ class GitReference
    
       super
    end
-   def clone
+   def clone(interactive=true)
+    
       #Clone the Git Repository
-      
       checks_failed = false
       
       #check if directory already exists
@@ -167,17 +241,22 @@ class GitReference
          puts "Cloning Warning - Directory #{localdir} already exists! Running checks instead"
          checks_failed = self.check()
       else
-         syscmd("git clone #{url} #{localdir} --recursive")
-         self.checkout
-         if @readonly
-            self.set_writeable(false)
+         status = syscmd("git clone #{url} #{localdir} --recursive",interactive)
+         if status != 0
+            self.checkout
+            if @readonly
+               self.set_writeable(false)
+            end
+         else
+            checks_failed = true
          end
+         
       end
       
       return checks_failed
    end
    
-   def update(force_clone)
+   def update(force_clone,interactive=true)
       command_failed = false
       # Returns true if falure
       if local_exists
@@ -187,8 +266,9 @@ class GitReference
             if @readonly
                self.set_writeable(true)
             end
+            syscmd("cd #{@localdir} && git fetch origin",interactive)
             self.checkout
-            syscmd("cd #{@localdir} && git pull origin #{branch} --recurse-submodules && git submodule update --init --recursive")
+            syscmd("git submodule update --init --recursive")
             if @readonly
                self.set_writeable(false)
             end
@@ -206,21 +286,41 @@ class GitReference
    end
    
    def checkout()
-      if local_branch() != @branch
-         syscmd("cd #{@localdir} && git checkout -B #{@branch} origin/#{@branch} && git submodule update --init --recursive")
+      if is_branch()
+         checkout_cmd = "checkout -B #{@branch} origin/#{@branch}" # Create a local branch
+      else
+         checkout_cmd = "checkout #{@branch}" # Direct checkout the tag/comit
       end
+      syscmd("cd #{@localdir} && git #{checkout_cmd} && git submodule update --init --recursive")  
    end
    
    def set_writeable(tf)
+
       if tf
          puts "Setting #{@localdir} to writable"
-         chmod_cmd = "chmod u+w" 
+         perms = "u+w" 
       else
          puts "Setting #{@localdir} to read only"
-         chmod_cmd = "chmod u-w" 
+         perms = "a-w" 
       end
-      find_cmd = "find #{@localdir} -type f -o -type d -not -path '*/.git/*' -not -name '.git' -exec #{chmod_cmd} {} \\;"
-      syscmd(find_cmd)
+      
+      file_paths = []
+      ignore_paths = []
+      Find.find(@localdir) do |path|
+         # Ignore .git folder
+         if path.match(/.*\/.git$/) || path.match(/.*\/.git\/.*/)
+            ignore_paths << path
+         else
+            file_paths << path
+            #FileUtils.chmod 'a-w', path
+            FileUtils.chmod(perms,path)
+         end
+      end
+      
+      # Useful for debug
+      #puts "IGNORED PATHS\n"+ignore_paths.to_s
+      #puts "FOUND_PATHS\n"+file_paths.to_s
+      
    end
    
    def check(skip_branch=false)
@@ -233,17 +333,28 @@ class GitReference
       puts "\nRunning checks on local repository #{@localdir}"
       checks_failed = false
       if local_exists
-         if skip_branch || local_branch() == @branch
-            #puts "\tPASS - Check branch matches #{@branch}"
-         else
-            puts "\tFAIL - Check branch matches #{@branch}"
-            checks_failed = true
+         if !skip_branch
+            if is_branch()
+               bname = @branch
+            else
+               bname = rev_parse(@branch)
+            end
+            branch_valid = local_branch() == bname
+            if !branch_valid
+               puts "\tFAIL - Check branch matches #{@branch} rev #{bname}"
+               puts "\t\tLocal  Branch: '#{bname}'"
+               puts "\t\tTarget Branch: '#{@branch}'"
+               puts "\t\tHEAD: '#{rev_parse("HEAD")}'"
+               checks_failed = true
+            end
          end
 
          if local_url() == @url
             #puts "\tPASS - Check remote url matches #{@url}"
          else
             puts "\tFAIL - Check remote url matches #{@url}"
+            puts "\t\tLocal URL #{local_url()}'"
+            puts "\t\tRemote URL #{@url}'"
             checks_failed = true
          end
 
@@ -266,16 +377,28 @@ class GitReference
       return checks_failed
    end
    
-   def syscmd(cmd)
-      puts ("#{cmd}").color(Colors::YELLOW)
+   def syscmd(cmd,open_xterm=false)
+      if open_xterm
+         cmd = "xterm -geometry 90x30 -e \"#{cmd} || echo 'Command Failed, see log above. Press CTRL+C to close window' && sleep infinity\""
+      end
+      cmd_id = Digest::SHA1.hexdigest(cmd).to_s[0..4]
       #Pass env var to Open3
-      stdout_str,stderr_str,status = Open3.capture3({"GIT_SSH_COMMAND" => $GIT_SSH_COMMAND},cmd)
+      if $GIT_SSH_COMMAND
+         args = {"GIT_SSH_COMMAND" => $GIT_SSH_COMMAND}
+      else
+         args = {}
+      end
+      stdout_str,stderr_str,status = Open3.capture3(args,cmd)
+      
+      puts "="*30+"COMMAND ID #{cmd_id}"+"="*28+"\n"
+      puts ("#{cmd}").color(Colors::YELLOW)
       if stdout_str != "" || stderr_str != ""
-         puts "="*30+"START"+"="*28+"\n"
+         puts "="*30+"COMMAND #{cmd_id} LOG START"+"="*28+"\n"
          puts stderr_str
          puts stdout_str
-         puts "="*30+"END"+"="*30+"\n"
+         puts "="*30+"COMMAND #{cmd_id} LOG END"+"="*30+"\n"
       end
+      status
    end
    
    def remove(force)
@@ -290,6 +413,31 @@ class GitReference
       else
          command_failed = true
       end
+      return command_failed
+   end
+   
+   def rinse(force=false)
+      if !@readonly && !force
+         puts "Error with repository #{@localdir}\n\t Repositories can only be rinsed when in readonly mode"
+         command_failed = true
+      else
+         self.set_writeable(true)
+         status = syscmd("cd #{@localdir} && " \
+         "git fetch origin && " \
+         "git clean -xdff && "  \
+         "git reset --hard && " \
+         "git submodule foreach --recursive git clean -xdff && " \
+         "git submodule foreach --recursive git reset --hard && " \
+         "git submodule update --init --recursive")
+         self.checkout
+         self.set_writeable(false)
+         if !status
+            command_failed = true
+            puts "Rinse command failed for repo #{@localdir}, check log"
+         end
+      end
+      
+      
       return command_failed
    end
    
@@ -324,10 +472,32 @@ class GitReference
          end
       end
    end
+   def status
+      syscmd("cd #{@localdir} && git status && git branch && git rev-parse HEAD")
+      return false
+   end
+
+   def is_branch()
+      #check if branch ID is a branch or a tag/commit
+      return system("git show-ref -q --verify refs/remotes/origin/#{@branch}")
+   end
    
    def local_branch()
-      bname = `cd #{@localdir} && git rev-parse --abbrev-ref HEAD`.chomp
+      if is_branch()
+         bname = rev_parse("HEAD",true)
+      else
+         bname = rev_parse("HEAD")
+      end
       return bname
+   end
+   
+   def rev_parse(rev,abbrev=false)
+      if abbrev
+         rp = `cd #{@localdir} && git rev-parse --abbrev-ref #{rev}`.chomp
+      else
+         rp = `cd #{@localdir} && git rev-parse #{rev}`.chomp
+      end
+      return rp
    end
    
    def local_url()
@@ -390,7 +560,16 @@ class GitCollection
          puts ("\n"+"="*60+"\nWARNING DURING CLONING!\n\tSome repositories already existed and failed checks.\n\tReview this log or run 'gpack check' to see detailed information\n"+"="*60).color(Colors::RED)
       end
    end
-   def clean()
+   def rinse()
+      puts "\nRinsing Repositories....."
+      raise_warning = ref_loop(refs) { |ref|
+         ref.rinse
+      }
+      if raise_warning
+         puts ("\n"+"="*60+"\nWARNING DURING Rinse!\n"+"="*60).color(Colors::RED)
+      end
+   end
+   def reinstall()
       puts "This will force remove repositories and repopulate. Any local data will be lost!!!\nContinue (y/n)"
       cont = $stdin.gets.chomp
       if cont == "y"
@@ -405,8 +584,17 @@ class GitCollection
    end
    def check()
       puts "\nChecking Local Repositories....."
-      raise_warning = ref_loop(refs) { |ref|
+      raise_warning = ref_loop(refs,true) { |ref|
          ref.check
+      }
+      if raise_warning
+         puts ("\n"+"="*60+"\nWARNINGS FOUND DURING CHECK!\n\tReview this log to see detailed information\n"+"="*60).color(Colors::RED)
+      end
+   end
+   def status()
+      puts "\nStatus of Local Repositories....."
+      raise_warning = ref_loop(refs,true) { |ref|
+         ref.status
       }
       if raise_warning
          puts ("\n"+"="*60+"\nWARNINGS FOUND DURING CHECK!\n\tReview this log to see detailed information\n"+"="*60).color(Colors::RED)
@@ -438,27 +626,39 @@ class GitCollection
    end
    
    
-   def ref_loop(refs)
-      read, write = IO.pipe
-      Parallel.map(@refs) do |ref|
+   def ref_loop(refs, parallel_override=false)
+      if $use_parallel && !parallel_override
+         read, write = IO.pipe
+         Parallel.map(@refs) do |ref|
 
-         # Set up standard output as a StringIO object.
-         old_stdout = $stdout
-         foo = StringIO.new
-         $stdout = foo
-         
-         raise_warning = yield(ref)
-         write.puts raise_warning
-         
-         $stdout = old_stdout
-         puts foo.string
-         
-      end
-      write.close
-      read_data =  read.read
-      #puts read_data
-      if read_data.index("true")
-         raise_warning = true
+            # Set up standard output as a StringIO object.
+            old_stdout = $stdout
+            foo = StringIO.new
+            $stdout = foo
+            
+            raise_warning = yield(ref)
+            write.puts raise_warning
+            
+            $stdout = old_stdout
+            puts foo.string
+            
+         end
+         write.close
+         read_data =  read.read
+         #puts read_data
+         if read_data.index("true")
+            raise_warning = true
+         end
+      else
+         raise_warning = false
+         @refs.each do |ref|
+            
+            ret_warning = yield(ref)
+            if ret_warning
+               raise_warning = true
+            end
+         end
+
       end
 
       return raise_warning
@@ -1038,54 +1238,23 @@ module Parallel
   end
 end
 
-puts `which git`
+puts "Using Git Executable #{`which git`}"
 
+## TODO - Check propery ruby and git versions
 ## Check is ruby/git module files are properly loaded
-if `which git`.chomp != "/apps/git/current/bin/git"
-   puts "ERROR: Git and Ruby modules not properly loaded!"
-   puts "\tYour .cshrc should have the following lines for gpack to properly work"
-   puts "\t\tsetenv MODULEPATH /common/modulefiles"
-   puts "\t\tmodule load apps/git-default"
-   puts
-   puts "The module command also must be installed. If you are having issues please contact Steve Reilly and Aaron Cook"   
-   exit
-end
+#if `which git`.chomp != "/apps/git/current/bin/git"
+#   puts "ERROR: Git and Ruby modules not properly loaded!"
+#   puts "\tYour .cshrc should have the following lines for gpack to properly work"
+#   puts "\t\tsetenv MODULEPATH /common/modulefiles"
+#   puts "\t\tmodule load apps/git-default"
+#   puts
+#   exit
+#end
 
-
-## First get the SSH key to tmp
-key_url = 'http://allegrogit.allegro.msad/ast/clio-template/raw/master/GitManager/ssh_key/id_rsa'
-key_tempfile = Tempfile.new('gpack_ssh')
-`wget -O #{key_tempfile.path} #{key_url} &> /dev/null`
-$GIT_SSH_COMMAND="ssh -i #{key_tempfile.path} -q -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
-##
-
-
-grepos = GitCollection.new()
-
-File.open($gbundle_file, "r") do |f|
-   lnumber = 1
-   
-   unlocked = File.exists?('./.gpackunlock')
-   
-   f.each_line do |line|      
-      if !line.index(/^\s*#.*/) && line.index($identifier)
-         clean_line = line.gsub($identifier,"")
-         new_repo = eval("GitReference.new #{clean_line}")
-         
-         if unlocked
-            new_repo.readonly = false
-         end
-         
-         grepos.add_ref(new_repo)
-      end
-      
-      lnumber=lnumber+1
-   end
-end
+grepos = parse_gpackrepos($gbundle_file)
 
 case ARGV[0]
    when "install"
-      grepos.print
       grepos.clone
    when "update"
       grepos.print
@@ -1095,10 +1264,8 @@ case ARGV[0]
          grepos.update(false)
       end
    when "check"
-      grepos.print
       grepos.check
    when "uninstall"
-      grepos.print
       if ARGV[1] == "-f"
          grepos.remove(true)
       else
@@ -1106,7 +1273,6 @@ case ARGV[0]
       end
       `rm -f .gpackunlock`
    when "archive"
-      grepos.print
       grepos.archive
    when "lock"
       `rm -f .gpackunlock`
@@ -1114,11 +1280,20 @@ case ARGV[0]
    when "unlock"
       `echo "UNLOCKED" >> .gpackunlock`
       grepos.set_writeable(true)
-   when "clean"
-      grepos.clean
+   when "rinse"
+      grepos.rinse
+      grepos.check # check should be clean
+   when "reinstall"
+      grepos.reinstall
+   when "status"
+      grepos.status
+   when "list"
+      grepos.print
    else "help"
       puts README
 end
 
-
-key_tempfile.close
+# Close the SSH tempfile
+if $remote_key
+   $remote_key.close
+end

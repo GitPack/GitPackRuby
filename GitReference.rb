@@ -113,15 +113,32 @@ class GitReference
    end
    
    def set_writeable(tf)
+
       if tf
          puts "Setting #{@localdir} to writable"
-         chmod_cmd = "chmod u+w" 
+         perms = "u+w" 
       else
          puts "Setting #{@localdir} to read only"
-         chmod_cmd = "chmod u-w" 
+         perms = "a-w" 
       end
-      find_cmd = "find #{@localdir} -type f -o -type d -not -path '*/.git/*' -not -name '.git' -exec #{chmod_cmd} {} \\;"
-      syscmd(find_cmd)
+      
+      file_paths = []
+      ignore_paths = []
+      Find.find(@localdir) do |path|
+         # Ignore .git folder
+         if path.match(/.*\/.git$/) || path.match(/.*\/.git\/.*/)
+            ignore_paths << path
+         else
+            file_paths << path
+            #FileUtils.chmod 'a-w', path
+            FileUtils.chmod(perms,path)
+         end
+      end
+      
+      # Useful for debug
+      #puts "IGNORED PATHS\n"+ignore_paths.to_s
+      #puts "FOUND_PATHS\n"+file_paths.to_s
+      
    end
    
    def check(skip_branch=false)
@@ -274,9 +291,9 @@ class GitReference
       end
    end
    def status
-      syscmd("cd #{@localdir} && git status && git branch")
+      syscmd("cd #{@localdir} && git status && git branch && git rev-parse HEAD")
+      return false
    end
-   
 
    def is_branch()
       #check if branch ID is a branch or a tag/commit
