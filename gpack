@@ -1,13 +1,24 @@
 #!/bin/bash
 
-url=http://nhlinear/ast/clio-template/raw/master/GitManager/gpack_concat.rb
+url=https://raw.githubusercontent.com/GitPack/GitPack/master/gpack.zip
 
 #Pull the script from the main repo into a temp file
-tempfile=$(mktemp /tmp/gpack_concat_XXXXX.rb)
+tempfile=$(mktemp /tmp/gpack_XXXXX.zip)
+
+ 
+if curl --output /dev/null --silent --head --fail "$url"
+then
+    echo "Downloading latest gpack from $url"
+else
+    echo "Error URL $url Does Not Exist or is not reachable"
+fi
+
 wget -O $tempfile $url &> /dev/null
 
+
 if [ ! -e $tempfile ]; then
-   echo "Error, was not able to fetch file $url. Please contact acook@allegromicro.com"
+   echo "Error, unable to create $tempfile. Check that you can write to this path or that the $url exists"
 else
    ruby $tempfile "$@"
+   rm $tempfile
 fi
