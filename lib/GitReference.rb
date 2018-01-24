@@ -131,7 +131,7 @@ class GitReference
          else
             file_paths << path
             #FileUtils.chmod 'a-w', path
-            FileUtils.chmod(perms,path)
+            FileUtils.chmod(perms,path) if File.exist?(path)
          end
       end
       
