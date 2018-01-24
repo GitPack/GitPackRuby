@@ -54,7 +54,7 @@ Structure
 
 Dependancies
 -----
-* Tested in Python 3.4.5
+* Tested in Ruby 2.3
 
 Setup
 -----
@@ -92,29 +92,41 @@ GpackRepos
 
 .. code-block:: bash
 
-    config:
-        remote_key: http://nhlinear.eng.allegro.msad/ast/clio-template/raw/master/GitManager/ssh_key/id_rsa
-        lock: true
+   test1:
+       url: git@github.com:GitPack/TestRepo1.git
+       localdir: ./repos/test1
+       branch: master
+       lock: true
 
-    test1:
-        url: git@allegrogit.allegro.msad:aporter/test1.git
-        local_dir: ./repos/test1
-        branch: master
+   test2:
+       url: git@github.com:GitPack/TestRepo2.git
+       localdir: ./repos/test2
+       branch: master
+       lock: false
 
-    test2:
-        url: git@allegrogit.allegro.msad:aporter/test2.git
-        local_dir: ./repos/test2
-        branch: master
+   test3:
+       url: git@github.com:GitPack/TestRepo3.git
+       localdir: ./repos/test3
+       branch: master
+       lock: false
 
-    test3:
-        url: git@allegrogit.allegro.msad:aporter/test3.git
-        local_dir: ./repos/test3
-        branch: master
+   test3_hash:
+       url: git@github.com:GitPack/TestRepo3.git
+       localdir: ./repos/test3_hash
+       branch: b41e58af7
+       lock: false
 
-    name:
-        branch: feat/gui
-        local_dir: ./repos/iogen
-        url: git@allegrogit.allegro.msad:AST-digital/iogen.git
+   test1_tag:
+       url: git@github.com:GitPack/TestRepo1.git
+       localdir: ./repos/test1_tag
+       branch: v2.0
+       lock: false
+      
+   config:
+      parallel: true
+      lock: true
+      #remote_key: http://allegrogit.allegro.msad/ast/clio-template/raw/master/GitManager/ssh_key/id_rsa
+
 
 
 Core Commands
@@ -1245,7 +1257,7 @@ def parse_gpackrepos(grepos_file)
 
 
 ## Options for YAML File
-required_keys = ["url","local_dir","branch"]
+required_keys = ["url","localdir","branch"]
 valid_config = ["lock","remote_key","parallel"]
 
 
@@ -1307,7 +1319,7 @@ yml_file.each do |key,entry|
          readonly = true
       end
       
-      new_repo = GitReference.new :url=>entry["url"], :localdir=>entry["local_dir"], :branch=>entry["branch"]
+      new_repo = GitReference.new :url=>entry["url"], :localdir=>entry["localdir"], :branch=>entry["branch"]
       
       if unlocked
          new_repo.readonly = false

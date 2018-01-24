@@ -5,7 +5,7 @@ def parse_gpackrepos(grepos_file)
 
 
 ## Options for YAML File
-required_keys = ["url","local_dir","branch"]
+required_keys = ["url","localdir","branch"]
 valid_config = ["lock","remote_key","parallel"]
 
 
@@ -67,7 +67,7 @@ yml_file.each do |key,entry|
          readonly = true
       end
       
-      new_repo = GitReference.new :url=>entry["url"], :localdir=>entry["local_dir"], :branch=>entry["branch"]
+      new_repo = GitReference.new :url=>entry["url"], :localdir=>entry["localdir"], :branch=>entry["branch"]
       
       if unlocked
          new_repo.readonly = false

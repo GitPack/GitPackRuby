@@ -1,30 +1,30 @@
 test1:
     url: git@github.com:GitPack/TestRepo1.git
-    local_dir: ./repos/test1
+    localdir: ./repos/test1
     branch: master
     lock: true
 
 test2:
     url: git@github.com:GitPack/TestRepo2.git
-    local_dir: ./repos/test2
+    localdir: ./repos/test2
     branch: master
     lock: false
 
 test3:
     url: git@github.com:GitPack/TestRepo3.git
-    local_dir: ./repos/test3
+    localdir: ./repos/test3
     branch: master
     lock: false
 
 test3_hash:
     url: git@github.com:GitPack/TestRepo3.git
-    local_dir: ./repos/test3_hash
+    localdir: ./repos/test3_hash
     branch: b41e58af7
     lock: false
 
 test1_tag:
     url: git@github.com:GitPack/TestRepo1.git
-    local_dir: ./repos/test1_tag
+    localdir: ./repos/test1_tag
     branch: v2.0
     lock: false
    
