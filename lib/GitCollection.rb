@@ -13,7 +13,7 @@ class GitCollection
    def print()
       puts "="*40+"\n\tGit Reference Summary\n"+"="*40
       @refs.each do |ref|
-         puts "Reference #{ref.url}\n\tlocaldir-#{ref.localdir}\n\tbranch-#{ref.branch}\n\treadonly-#{ref.readonly}"
+         ref.print()
       end
    end
    def archive()
@@ -62,7 +62,11 @@ class GitCollection
          ref.check
       }
       if raise_warning
-         puts ("\n"+"="*60+"\nWARNINGS FOUND DURING CHECK!\n\tReview this log to see detailed information\n"+"="*60).color(Colors::RED)
+         puts ("\n"+"="*60+"\nWARNINGS FOUND DURING CHECK!\n\tReview this log to see detailed information\n" \
+            "\tThe following commands can be run to help debug:\n" \
+            "\t\tgpack status #Shows the current git status\n" \
+            "\t\tgpack rinse #Removes all local changes and untracked files,use with caution" \
+            +"="*60).color(Colors::RED)
       end
    end
    def status()

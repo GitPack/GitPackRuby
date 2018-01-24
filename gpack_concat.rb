@@ -352,12 +352,15 @@ class GitReference
             else
                bname = rev_parse(@branch)
             end
+            puts bname
             branch_valid = local_branch() == bname
             if !branch_valid
                puts "\tFAIL - Check branch matches #{@branch} rev #{bname}"
-               puts "\t\tLocal  Branch: '#{bname}'"
-               puts "\t\tTarget Branch: '#{@branch}'"
-               puts "\t\tHEAD: '#{rev_parse("HEAD")}'"
+               puts "\t\tLocal  Branch abbrev    : '#{rev_parse("HEAD",true)}'"
+               puts "\t\tLocal  Branch SHA       : '#{rev_parse("HEAD")}'"
+               puts "\t\tSpecified Branch        :    '#{@branch}'"
+               puts "\t\tSpecified Branch abbrev : '#{rev_parse(@branch)}'"
+               puts "\t\tSpecified Branch SHA    : '#{rev_parse(@branch,true)}'"
                checks_failed = true
             end
          end
@@ -412,6 +415,10 @@ class GitReference
          puts "="*30+"COMMAND #{cmd_id} LOG END"+"="*30+"\n"
       end
       status
+   end
+   
+   def localcmd(cmd_str)
+      return `cd #{@localdir} && #{cmd_str}`.chomp
    end
    
    def remove(force)
@@ -486,13 +493,14 @@ class GitReference
       end
    end
    def status
-      syscmd("cd #{@localdir} && git status && git branch && git rev-parse HEAD")
+      self.print()
+      syscmd("cd #{@localdir} && git status && echo 'Git Branch' && git branch && echo 'Git SHA' && git rev-parse HEAD")
       return false
    end
 
    def is_branch()
       #check if branch ID is a branch or a tag/commit
-      return system("git show-ref -q --verify refs/remotes/origin/#{@branch}")
+      return system("cd #{localdir} && git show-ref -q --verify refs/remotes/origin/#{@branch}")
    end
    
    def local_branch()
@@ -506,25 +514,25 @@ class GitReference
    
    def rev_parse(rev,abbrev=false)
       if abbrev
-         rp = `cd #{@localdir} && git rev-parse --abbrev-ref #{rev}`.chomp
+         rp = localcmd("git rev-parse --abbrev-ref #{rev}")
       else
-         rp = `cd #{@localdir} && git rev-parse #{rev}`.chomp
+         rp = localcmd("git rev-parse #{rev}")
       end
       return rp
    end
    
    def local_url()
-      urlname = `cd #{@localdir} && git config --get remote.origin.url`.chomp
+      urlname = localcmd("git config --get remote.origin.url")
       return urlname
    end
    
    def local_rev()
-      revname = `cd #{@localdir} && git rev-parse --short HEAD`.chomp
+      revname = localcmd("git rev-parse --short HEAD")
       return revname
    end
    
    def local_clean()
-      clean = `cd #{@localdir} && git status --porcelain`
+      clean = localcmd("git status --porcelain")
       return clean == "" # Empty string means it's clean
    end
    
@@ -534,6 +542,10 @@ class GitReference
       else
          return false
       end
+   end
+   
+   def print()
+      puts "Reference #{@url}\n\tlocaldir-#{@localdir}\n\tbranch-#{@branch}\n\treadonly-#{@readonly}"
    end
    
 end
@@ -552,7 +564,7 @@ class GitCollection
    def print()
       puts "="*40+"\n\tGit Reference Summary\n"+"="*40
       @refs.each do |ref|
-         puts "Reference #{ref.url}\n\tlocaldir-#{ref.localdir}\n\tbranch-#{ref.branch}\n\treadonly-#{ref.readonly}"
+         ref.print()
       end
    end
    def archive()
@@ -601,7 +613,11 @@ class GitCollection
          ref.check
       }
       if raise_warning
-         puts ("\n"+"="*60+"\nWARNINGS FOUND DURING CHECK!\n\tReview this log to see detailed information\n"+"="*60).color(Colors::RED)
+         puts ("\n"+"="*60+"\nWARNINGS FOUND DURING CHECK!\n\tReview this log to see detailed information\n" \
+            "\tThe following commands can be run to help debug:\n" \
+            "\t\tgpack status #Shows the current git status\n" \
+            "\t\tgpack rinse #Removes all local changes and untracked files,use with caution" \
+            +"="*60).color(Colors::RED)
       end
    end
    def status()
