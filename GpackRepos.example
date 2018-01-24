@@ -1,5 +1,5 @@
 test1:
-    url: git@github.com:GitPack/TestRepo3.git
+    url: git@github.com:GitPack/TestRepo1.git
     local_dir: ./repos/test1
     branch: master
     lock: true
@@ -15,3 +15,20 @@ test3:
     local_dir: ./repos/test3
     branch: master
     lock: false
+
+test3_hash:
+    url: git@github.com:GitPack/TestRepo3.git
+    local_dir: ./repos/test3_hash
+    branch: b41e58af7
+    lock: false
+
+test1_tag:
+    url: git@github.com:GitPack/TestRepo1.git
+    local_dir: ./repos/test1_tag
+    branch: v2.0
+    lock: false
+   
+config:
+   parallel: true
+   lock: true
+   remote_key: http://allegrogit.allegro.msad/ast/clio-template/raw/master/GitManager/ssh_key/id_rsa

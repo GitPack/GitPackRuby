@@ -58,8 +58,17 @@ class GitCollection
    end
    def check()
       puts "\nChecking Local Repositories....."
-      raise_warning = ref_loop(refs) { |ref|
+      raise_warning = ref_loop(refs,true) { |ref|
          ref.check
+      }
+      if raise_warning
+         puts ("\n"+"="*60+"\nWARNINGS FOUND DURING CHECK!\n\tReview this log to see detailed information\n"+"="*60).color(Colors::RED)
+      end
+   end
+   def status()
+      puts "\nStatus of Local Repositories....."
+      raise_warning = ref_loop(refs,true) { |ref|
+         ref.status
       }
       if raise_warning
          puts ("\n"+"="*60+"\nWARNINGS FOUND DURING CHECK!\n\tReview this log to see detailed information\n"+"="*60).color(Colors::RED)
@@ -91,27 +100,39 @@ class GitCollection
    end
    
    
-   def ref_loop(refs)
-      read, write = IO.pipe
-      Parallel.map(@refs) do |ref|
+   def ref_loop(refs, parallel_override=false)
+      if $use_parallel && !parallel_override
+         read, write = IO.pipe
+         Parallel.map(@refs) do |ref|
 
-         # Set up standard output as a StringIO object.
-         old_stdout = $stdout
-         foo = StringIO.new
-         $stdout = foo
-         
-         raise_warning = yield(ref)
-         write.puts raise_warning
-         
-         $stdout = old_stdout
-         puts foo.string
-         
-      end
-      write.close
-      read_data =  read.read
-      #puts read_data
-      if read_data.index("true")
-         raise_warning = true
+            # Set up standard output as a StringIO object.
+            old_stdout = $stdout
+            foo = StringIO.new
+            $stdout = foo
+            
+            raise_warning = yield(ref)
+            write.puts raise_warning
+            
+            $stdout = old_stdout
+            puts foo.string
+            
+         end
+         write.close
+         read_data =  read.read
+         #puts read_data
+         if read_data.index("true")
+            raise_warning = true
+         end
+      else
+         raise_warning = false
+         @refs.each do |ref|
+            
+            ret_warning = yield(ref)
+            if ret_warning
+               raise_warning = true
+            end
+         end
+
       end
 
       return raise_warning

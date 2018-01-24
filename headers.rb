@@ -4,9 +4,14 @@ $VERBOSE=nil
 require 'tempfile'
 require 'open3'
 require 'yaml'
+require 'open-uri'
+require 'digest/sha1'
 
 $gbundle_file = 'GpackRepos'
 $identifier = "gpack"
+$use_parallel = false
+$remote_key = false
+$GIT_SSH_COMMAND = false
 
 
 class Colors

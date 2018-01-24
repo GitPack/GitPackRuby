@@ -80,7 +80,7 @@ class GitReference
                self.set_writeable(true)
             end
             self.checkout
-            syscmd("cd #{@localdir} && git pull origin #{branch} --recurse-submodules && git submodule update --init --recursive",interactive)
+            syscmd("cd #{@localdir} && echo 'GIT_SSH_COMMAND $GIT_SSH_COMMAND' && git pull origin #{branch} --recurse-submodules && git submodule update --init --recursive",interactive)
             if @readonly
                self.set_writeable(false)
             end
@@ -98,9 +98,12 @@ class GitReference
    end
    
    def checkout()
-      if local_branch() != @branch
-         syscmd("cd #{@localdir} && git checkout -B #{@branch} origin/#{@branch} && git submodule update --init --recursive")
+      if is_branch()
+         checkout_cmd = "checkout -B #{@branch} origin/#{@branch}" # Create a local branch
+      else
+         checkout_cmd = "checkout #{@branch}" # Direct checkout the tag/comit
       end
+      syscmd("cd #{@localdir} && git #{checkout_cmd} && git submodule update --init --recursive")  
    end
    
    def set_writeable(tf)
@@ -125,17 +128,28 @@ class GitReference
       puts "\nRunning checks on local repository #{@localdir}"
       checks_failed = false
       if local_exists
-         if skip_branch || local_branch() == @branch
-            #puts "\tPASS - Check branch matches #{@branch}"
-         else
-            puts "\tFAIL - Check branch matches #{@branch}"
-            checks_failed = true
+         if !skip_branch
+            if is_branch()
+               bname = @branch
+            else
+               bname = rev_parse(@branch)
+            end
+            branch_valid = local_branch() == bname
+            if !branch_valid
+               puts "\tFAIL - Check branch matches #{@branch} rev #{bname}"
+               puts "\t\tLocal  Branch: '#{bname}'"
+               puts "\t\tTarget Branch: '#{@branch}'"
+               puts "\t\tHEAD: '#{rev_parse("HEAD")}'"
+               checks_failed = true
+            end
          end
 
          if local_url() == @url
             #puts "\tPASS - Check remote url matches #{@url}"
          else
             puts "\tFAIL - Check remote url matches #{@url}"
+            puts "\t\tLocal URL #{local_url()}'"
+            puts "\t\tRemote URL #{@url}'"
             checks_failed = true
          end
 
@@ -162,14 +176,20 @@ class GitReference
       if open_xterm
          cmd = "xterm -geometry 90x30 -e \"#{cmd} || read -p 'Command Failed, see log above. Press return to close window'\""
       end
+      cmd_id = Digest::SHA1.hexdigest(cmd).to_s[0..4]
+      puts "="*30+"COMMAND ID #{cmd_id}"+"="*28+"\n"
       puts ("#{cmd}").color(Colors::YELLOW)
       #Pass env var to Open3
-      stdout_str,stderr_str,status = Open3.capture3({"GIT_SSH_COMMAND" => $GIT_SSH_COMMAND},cmd)
+      if $GIT_SSH_COMMAND
+         stdout_str,stderr_str,status = Open3.capture3({"GIT_SSH_COMMAND" => $GIT_SSH_COMMAND},cmd)
+      else
+         stdout_str,stderr_str,status = Open3.capture3(cmd)
+      end
       if stdout_str != "" || stderr_str != ""
-         puts "="*30+"START"+"="*28+"\n"
+         puts "="*30+"COMMAND #{cmd_id} LOG START"+"="*28+"\n"
          puts stderr_str
          puts stdout_str
-         puts "="*30+"END"+"="*30+"\n"
+         puts "="*30+"COMMAND #{cmd_id} LOG END"+"="*30+"\n"
       end
    end
    
@@ -194,13 +214,19 @@ class GitReference
          command_failed = true
       else
          self.set_writeable(true)
-         syscmd("cd #{@localdir} && " \
+         status = syscmd("cd #{@localdir} && " \
+         "git fetch origin && " \
          "git clean -xdff && "  \
          "git reset --hard && " \
          "git submodule foreach --recursive git clean -xdff && " \
          "git submodule foreach --recursive git reset --hard && " \
          "git submodule update --init --recursive")
+         self.checkout
          self.set_writeable(false)
+         if !status
+            command_failed = true
+            puts "Rinse command failed for repo #{@localdir}, check log"
+         end
       end
       
       
@@ -238,10 +264,32 @@ class GitReference
          end
       end
    end
+   def status
+      syscmd("cd #{@localdir} && git status && git branch")
+   end
+   
+
+   def is_branch()
+      #check if branch ID is a branch or a tag/commit
+      return system("git show-ref -q --verify refs/remotes/origin/#{@branch}")
+   end
    
    def local_branch()
-      bname = `cd #{@localdir} && git rev-parse --abbrev-ref HEAD`.chomp
+      if is_branch()
+         bname = rev_parse("HEAD",true)
+      else
+         bname = rev_parse("HEAD")
+      end
       return bname
+   end
+   
+   def rev_parse(rev,abbrev=false)
+      if abbrev
+         rp = `cd #{@localdir} && git rev-parse --abbrev-ref #{rev}`.chomp
+      else
+         rp = `cd #{@localdir} && git rev-parse #{rev}`.chomp
+      end
+      return rp
    end
    
    def local_url()

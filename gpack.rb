@@ -12,17 +12,6 @@ puts `which git`
 #   exit
 #end
 
-
-## TODO implement SSH key option
-custom_ssh_key = false
-if custom_ssh_key
-   key_url = custom_ssh_url
-   key_tempfile = Tempfile.new('gpack_ssh')
-   `wget -O #{key_tempfile.path} #{key_url} &> /dev/null`
-   $GIT_SSH_COMMAND="ssh -i #{key_tempfile.path} -q -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
-   ##
-end
-
 grepos = parse_gpackrepos($gbundle_file)
 
 case ARGV[0]
@@ -60,10 +49,13 @@ case ARGV[0]
       grepos.rinse
    when "reinstall"
       grepos.reinstall
+   when "status"
+      grepos.status
    else "help"
       puts README
 end
 
-if custom_ssh_key
-   key_tempfile.close
+# Close the SSH tempfile
+if $remote_key
+   $remote_key.close
 end
