@@ -59,11 +59,16 @@ class GitReference
          puts "Cloning Warning - Directory #{localdir} already exists! Running checks instead"
          checks_failed = self.check()
       else
-         syscmd("git clone #{url} #{localdir} --recursive",interactive)
-         self.checkout
-         if @readonly
-            self.set_writeable(false)
+         status = syscmd("git clone #{url} #{localdir} --recursive",interactive)
+         if status != 0
+            self.checkout
+            if @readonly
+               self.set_writeable(false)
+            end
+         else
+            checks_failed = true
          end
+         
       end
       
       return checks_failed
@@ -79,8 +84,9 @@ class GitReference
             if @readonly
                self.set_writeable(true)
             end
+            syscmd("cd #{@localdir} && git fetch origin",interactive)
             self.checkout
-            syscmd("cd #{@localdir} && echo 'GIT_SSH_COMMAND $GIT_SSH_COMMAND' && git pull origin #{branch} --recurse-submodules && git submodule update --init --recursive",interactive)
+            syscmd("git submodule update --init --recursive")
             if @readonly
                self.set_writeable(false)
             end
@@ -174,23 +180,26 @@ class GitReference
    
    def syscmd(cmd,open_xterm=false)
       if open_xterm
-         cmd = "xterm -geometry 90x30 -e \"#{cmd} || read -p 'Command Failed, see log above. Press return to close window'\""
+         cmd = "xterm -geometry 90x30 -e \"#{cmd} || echo 'Command Failed, see log above. Press CTRL+C to close window' && sleep infinity\""
       end
       cmd_id = Digest::SHA1.hexdigest(cmd).to_s[0..4]
-      puts "="*30+"COMMAND ID #{cmd_id}"+"="*28+"\n"
-      puts ("#{cmd}").color(Colors::YELLOW)
       #Pass env var to Open3
       if $GIT_SSH_COMMAND
-         stdout_str,stderr_str,status = Open3.capture3({"GIT_SSH_COMMAND" => $GIT_SSH_COMMAND},cmd)
+         args = {"GIT_SSH_COMMAND" => $GIT_SSH_COMMAND}
       else
-         stdout_str,stderr_str,status = Open3.capture3(cmd)
+         args = {}
       end
+      stdout_str,stderr_str,status = Open3.capture3(args,cmd)
+      
+      puts "="*30+"COMMAND ID #{cmd_id}"+"="*28+"\n"
+      puts ("#{cmd}").color(Colors::YELLOW)
       if stdout_str != "" || stderr_str != ""
          puts "="*30+"COMMAND #{cmd_id} LOG START"+"="*28+"\n"
          puts stderr_str
          puts stdout_str
          puts "="*30+"COMMAND #{cmd_id} LOG END"+"="*30+"\n"
       end
+      status
    end
    
    def remove(force)

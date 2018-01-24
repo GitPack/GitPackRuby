@@ -6,6 +6,7 @@ require 'open3'
 require 'yaml'
 require 'open-uri'
 require 'digest/sha1'
+require 'rdoc'
 
 $gbundle_file = 'GpackRepos'
 $identifier = "gpack"

@@ -1,75 +1,148 @@
 README=%{
-Git Package Manager
-   Uses a single file to describe a list of repositories that should be populated in a local area.
-   These repositories are automatically cloned into a specified local folder.
-   Also allows these local repositories to be updated as a group and checked for consistancy.
-   The concept for Git Package Manager was based on Ruby Gemfiles
+=====
+GitPack
+=====
 
-Usage
-   #{$identifier} [OPTION]
+Python based git repository manager. Conceptually simular to a package manager like pip, rubygems, ect. GitPack handles the distrubuting of repositories without being tied to a specific language; although it does use python to execute commands. It specifically is designed to control multiple git repository dependancies on a multiple user project. The default behavior is to clone the repositories in a read-only mode, however this can be configured.
+
+* Clones multiple repositories in parallel.
+* Controls read-only permissions on cloned repositories.
+* Pulls multiple repositoires in parallel.
+* Easy clean of repositories that do not have a clean git status.
+* Submodule compatible
+
+Structure
+-----
+* ./gpack - The main exectuable. GitPack is self updating and downloads the latest ver. of master from this repository.
+* ./GpackRepos - The main file that GitPack uses to store information about remote repositories URL, the local desitinations where the repositories should be cloned, and user configuration options like read-only, SSH keys, ect. This file is in YAML format
+* ./.gpacklock - Used to store the repository read-only status.
+
+Dependancies
+-----
+* Tested in Python 3.4.5
+
+Setup
+-----
+Download the gpack bash script to a local directory and make the file executable:
+    
+.. code::
+
+    wget https://raw.githubusercontent.com/GitPack/GitPack/master/gpack
+    chmod u+x ./gpack
+
+Add repos to GpackRepos file using gpack, an example is shown below:
+
+.. code::
+
+    ./gpack add git@github.com:GitPack/GitPack.git ./GitPack
+
+Basic Usage
+-----
+
+Installs all repos in GpackRepos file:
+
+.. code::
+
+    ./gpack install
+
+Update installed repos in GpackRepos file:
+
+.. code::
+    
+    ./gpack update
+
+
+GpackRepos
+----------
+
+.. code-block:: bash
+
+    config:
+        remote_key: http://nhlinear.eng.allegro.msad/ast/clio-template/raw/master/GitManager/ssh_key/id_rsa
+        lock: true
+
+    test1:
+        url: git@allegrogit.allegro.msad:aporter/test1.git
+        local_dir: ./repos/test1
+        branch: master
+
+    test2:
+        url: git@allegrogit.allegro.msad:aporter/test2.git
+        local_dir: ./repos/test2
+        branch: master
+
+    test3:
+        url: git@allegrogit.allegro.msad:aporter/test3.git
+        local_dir: ./repos/test3
+        branch: master
+
+    name:
+        branch: feat/gui
+        local_dir: ./repos/iogen
+        url: git@allegrogit.allegro.msad:AST-digital/iogen.git
+
+
+Core Commands
+-------------
+
+**add [url] [directory] [branch]**
+   Adds a repo to the GpackRepos file given ssh URL and local directory
+   relative to current directory
+**check**
+   Checks if all repos are clean and match GpackRepos
+**status**
+   Runs through each repo and reports the result of git status
+**clean [repo]**
+   Force cleans local repo directory with git clean -xdff
+**help**
+   Displays this message
+**install [-nogui]**
+   Clones repos in repo directory
+   -nogui doesn't open terminals when installing
+**uninstall [repo] [-f]**
+   Removes all local repositories listed in the Repositories File
+   Add -f to force remove all repositories
+**reinstall [repo] [-f]**
+   The same as running uninstall then reinstall
+**list**
+   List all repos in GpackRepos file
+**lock [repo]**
+   Makes repo read-only, removes from .gpacklock file
+**unlock [repo]**
+   Allows writing to repo, appends to .gpacklock file
+**purge**
+   Removes all repos and re-clones from remote
+**update [repo]**
+   Cleans given repo, resetting it to the default
+
+Git Commands
+------------
+
+**branch [repo]**
+   Checks branch on current repo
+**checkout [repo]**
+   Prompts user for branch to checkout. If the branch doesn't exist, ask if
+   user wants to create a new one
+**push [repo]**
+   Pushes local repo changes to origin
+   Won't push if on master
+**pull [repo]**
+   Pulls changes to repo
+**tag [repo]**
+   Asks user which tag to checkout for a repo. If given tag doesn't exists,
+   ask for a new tag to create
+Details
+-----------
+* Maintains a clean local repository directory by parsing GpackRepos for user-defined repositores that they wish to clone.
+* By default, all cloned repositories have no write access.
+
+Future Improvements
+-----
+* GitPack is not Git LFS compatible at the moment. Merge requests with this feature would be accepted.
    
-Primary Options
+Developers
+-----
+* Andrew Porter https://github.com/AndrewRPorter
+* Aaron Cook https://github.com/cookacounty
 
-   help
-      Display this message
-      
-   install
-      Clone the repositories listed in the Repositories File into the local area
-      Will return a warning if these repositories exist and fail consistancy checks
-      Install assumes you can clone automatically from a given URL. 
-         If your SSH key is not setup on the remote, this command will fail!
-         
-   update
-      Pulls the repositories listed in the Repositories File.
-      If a repository fails the consitancy check run before the update, it will not be updated and a warning is given.
-      Adding a "-f" to this option will cause the update to 
-         clone the repository if it does not already exist "#{$identifier} update -f"
-         
-   uninstall
-      Removes the local repositories listed in the Repositories File.
-      The repositories are only removed if they pass the consistancy check before the remove
-      Add "-f" to force uninstall without consistancy checks 
-         "#{$identifier} uninstall -f" (Doing so may lose local data)
-         
-   archive
-      Create a tar.gz of the local repositories listed in the Repositories File. 
-      Name of the repo will be called
-         \#{localdir}_\#{git_rev}.tar.gz
-            localdir is the local directory
-            git_rev is the short name for the current git revision (git rev-parse --short HEAD)
-            
-   clean
-      Force cleaning of the repositories. Local data will be removed and repopulated.
-      Equivalent to running
-         uninstall -f
-         install
-            
-Advanced Options
-
-   lock
-      Make the repository read only (default).
-      
-   unlock
-      Make the repositories editable. A file called .gpacklock is created by this command
-      and a chmod is run
-      
-Package Manger Repositories File "#{$gbundle_file}"
-
-   This file describes the information for each repository that should be cloned and updated locally.
-   Each line is a seperate local repository and can have several 
-      fields that must be specified along with some optional fields
-   
-   Required Specifiers
-      :url
-         The URL from which to clone from and pull. This will be set to "origin" automatically by git
-      :localdir
-         The local directory to clone the repository into
-      :branch
-         The branch to checkout. This can also be a tag or commit (anything that is recognized by git checkout)
-   
-   Optional Specifiers
-      :readonly
-         Repository will be made readonly. There is a slight performance impact since the directory
-            file permissions are changed each time update is called.
-      
 }

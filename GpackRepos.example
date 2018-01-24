@@ -31,4 +31,4 @@ test1_tag:
 config:
    parallel: true
    lock: true
-   remote_key: http://allegrogit.allegro.msad/ast/clio-template/raw/master/GitManager/ssh_key/id_rsa
+   #remote_key: http://allegrogit.allegro.msad/ast/clio-template/raw/master/GitManager/ssh_key/id_rsa

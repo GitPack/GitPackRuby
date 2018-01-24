@@ -20,10 +20,8 @@ unlocked = File.exists?(".gpackunlock")
 yml_file = YAML.load_file(grepos_file)
 
 yml_file.each do |key,entry|
-   puts "#{key} #{entry}"
    if key == "config"
       # Read in config settings
-      puts "CONFIG"
       # Check if the config option is valid
       entry.each do |ckey,centry|
          if !valid_config.index(ckey)

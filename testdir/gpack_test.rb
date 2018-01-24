@@ -2,7 +2,6 @@
 
 current_file = File.dirname(__FILE__)
 
-
 begin
   require 'byebug'
 rescue LoadError

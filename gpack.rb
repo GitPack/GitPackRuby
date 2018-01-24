@@ -1,5 +1,5 @@
 
-puts `which git`
+puts "Using Git Executable #{`which git`}"
 
 ## TODO - Check propery ruby and git versions
 ## Check is ruby/git module files are properly loaded
@@ -16,7 +16,6 @@ grepos = parse_gpackrepos($gbundle_file)
 
 case ARGV[0]
    when "install"
-      grepos.print
       grepos.clone
    when "update"
       grepos.print
@@ -26,10 +25,8 @@ case ARGV[0]
          grepos.update(false)
       end
    when "check"
-      grepos.print
       grepos.check
    when "uninstall"
-      grepos.print
       if ARGV[1] == "-f"
          grepos.remove(true)
       else
@@ -37,7 +34,6 @@ case ARGV[0]
       end
       `rm -f .gpackunlock`
    when "archive"
-      grepos.print
       grepos.archive
    when "lock"
       `rm -f .gpackunlock`
@@ -51,6 +47,8 @@ case ARGV[0]
       grepos.reinstall
    when "status"
       grepos.status
+   when "list"
+      grepos.print
    else "help"
       puts README
 end
