@@ -111,13 +111,13 @@ Core Commands
 **uninstall [-f]**
    Removes all local repositories listed in the Repositories File
    Add -f to force remove all repositories
-**reinstall **
+**reinstall**
    The same as running uninstall then reinstall
 **list**
    List all repos in GpackRepos file
-**lock **
+**lock**
    Makes repo read-only, removes from .gpacklock file
-**unlock **
+**unlock**
    Allows writing to repo, appends to .gpacklock file
 **update [-f]**
    Updates the repositories -f will install if not already installed
