@@ -97,6 +97,12 @@ GpackRepos
 Core Commands
 -------------
 
+**gpack cmd [-f] [-nogui] [-persist] [-s]**
+   -f: Force operation
+   -s: Single threaded, useful for debug
+   -nogui: Do not pop up xterm windows
+   -p,-persist: Keep xterm windows open even if command is successful
+
 **add [url] [directory] [branch]**
    Adds a repo to the GpackRepos file given ssh URL and local directory
    relative to current directory
@@ -109,7 +115,7 @@ Core Commands
 **install**
    Clones repos in repo directory
    -nogui doesn't open terminals when installing
-**uninstall [-f]**
+**uninstall**
    Removes all local repositories listed in the Repositories File
    Add -f to force remove all repositories
 **reinstall**
@@ -120,7 +126,7 @@ Core Commands
    Makes repo read-only, removes from .gpacklock file
 **unlock**
    Allows writing to repo, appends to .gpacklock file
-**update [-f]**
+**update**
    Updates the repositories -f will install if not already installed
 
 Details
