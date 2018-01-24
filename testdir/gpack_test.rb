@@ -2,16 +2,18 @@
 
 current_file = File.dirname(__FILE__)
 
+lib_path = current_file+"/../lib"
+
 begin
   require 'byebug'
 rescue LoadError
   # Don't crash if debug gem isn't there
 end
 
-load current_file+"/../headers.rb"
-load current_file+"/../gpack_readme.rb"
-load current_file+"/../GitReference.rb"
-load current_file+"/../GitCollection.rb"
-load current_file+"/../parallel.rb"
-load current_file+"/../parse_repos.rb"
-load current_file+"/../gpack.rb"
+load lib_path+"/headers.rb"
+load lib_path+"/gpack_readme.rb"
+load lib_path+"/GitReference.rb"
+load lib_path+"/GitCollection.rb"
+load lib_path+"/parallel.rb"
+load lib_path+"/parse_repos.rb"
+load lib_path+"/gpack.rb"

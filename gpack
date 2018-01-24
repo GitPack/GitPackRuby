@@ -1,9 +1,9 @@
 #!/bin/bash
 
-url=https://raw.githubusercontent.com/GitPack/GitPack/master/gpack.zip
+url=https://raw.githubusercontent.com/GitPack/GitPackRuby/master/gpack_concat.rb
 
 #Pull the script from the main repo into a temp file
-tempfile=$(mktemp /tmp/gpack_XXXXX.zip)
+tempfile=$(mktemp /tmp/gpack_XXXXX.rb)
 
  
 if curl --output /dev/null --silent --head --fail "$url"
