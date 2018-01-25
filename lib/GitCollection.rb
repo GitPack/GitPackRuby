@@ -45,10 +45,6 @@ class GitCollection
          puts ("\n"+"="*60+"\nWARNING DURING Rinse!\n"+"="*60).color(Colors::RED)
       end
    end
-   def reinstall()
-      remove()
-      clone()   
-   end
    def check()
       puts "\nChecking Local Repositories....."
       raise_warning = ref_loop(refs,true) { |ref|
@@ -72,6 +68,7 @@ class GitCollection
       end
    end
    def update()
+      print()
       puts "\nUpdating Repositories.....\n\n"
       puts "Please be patient, this can take some time if pulling large commits.....".color(Colors::GREEN)
       raise_warning = ref_loop(refs) { |ref|
@@ -86,8 +83,8 @@ class GitCollection
       if $SETTINGS["core"]["force"] == true
          do_remove = true
       else
-            cont = $stdin.gets.chomp
-            do_remove = cont == "y"
+         cont = $stdin.gets.chomp
+         do_remove = cont == "y"
       end
       
       if do_remove
@@ -96,6 +93,7 @@ class GitCollection
          raise_warning = ref_loop(refs) { |ref|
             ref.remove()
          }
+         `rm -f .gpackunlock`
       else
          puts "Abort Uninstall"
       end

@@ -61,9 +61,8 @@ class GitReference
       else
          status = syscmd("git clone #{url} #{localdir} --recursive",true,false)
          self.checkout
-         if @readonly
-            self.set_writeable(false)
-         end
+         self.set_writeable(false) if @readonly
+         
          if status != 0
             checks_failed = true
          end
@@ -81,15 +80,11 @@ class GitReference
          checks_failed = self.check(true) # TODO, should this fail if branch is wrong?
          if !checks_failed
             puts "Updating local repository #{@localdir}"
-            if @readonly
-               self.set_writeable(true)
-            end
+            self.set_writeable(true) if @readonly
             syscmd("git fetch origin",true)
             self.checkout
             syscmd("git submodule update --init --recursive")
-            if @readonly
-               self.set_writeable(false)
-            end
+            self.set_writeable(false) if @readonly
             command_failed = false
          else
             command_failed = true
@@ -159,7 +154,6 @@ class GitReference
             else
                bname = rev_parse(@branch)
             end
-            puts bname
             branch_valid = local_branch() == bname
             if !branch_valid
                puts "\tFAIL - Check branch matches #{@branch} rev #{bname}"
@@ -204,20 +198,27 @@ class GitReference
       if cd_first
          cmd = "cd #{@localdir} && #{cmd}"
       end
-      if open_xterm && $SETTINGS["gui"]["show"]
-         if $SETTINGS["gui"]["persist"]
-            hold_opt = "-hold"
-         end
-         cmd = "xterm #{hold_opt} -geometry 90x30 -e \"#{cmd} || echo 'Command Failed, see log above. Press CTRL+C to close window' && sleep infinity\""
-      end
-      cmd_id = Digest::SHA1.hexdigest(cmd).to_s[0..4]
+      
       #Pass env var to Open3
       ssh_cmd = $SETTINGS["ssh"]["cmd"]
       if ssh_cmd
          args = {"GIT_SSH_COMMAND" => ssh_cmd}
+         puts "custom ssh"
       else
          args = {}
       end
+      
+      if open_xterm && $SETTINGS["gui"]["show"]
+         if $SETTINGS["gui"]["persist"]
+            hold_opt = "-hold"
+         end
+         if ssh_cmd
+            cmd = "echo 'GIT_SSH_COMMAND $GIT_SSH_COMMAND' ; #{cmd}"
+         end
+         cmd = "xterm #{hold_opt} -geometry 90x30 -e \"#{cmd} || echo 'Command Failed, see log above. Press CTRL+C to close window' && sleep infinity\""
+      end
+      cmd_id = Digest::SHA1.hexdigest(cmd).to_s[0..4]
+      
       stdout_str,stderr_str,status = Open3.capture3(args,cmd)
       
       puts "="*30+"COMMAND ID #{cmd_id}"+"="*28+"\n"
@@ -240,9 +241,7 @@ class GitReference
       command_failed = false
       if force || !self.check
          puts "Removing local repository #{@localdir}"
-         if @readonly
-            self.set_writeable(true)
-         end
+         self.set_writeable(true) if @readonly || force
          syscmd("rm -rf #{@localdir}",false,false)
          command_failed = false
       else
@@ -257,7 +256,7 @@ class GitReference
          puts "Error with repository #{@localdir}\n\t Repositories can only be rinsed when in readonly mode"
          command_failed = true
       else
-         self.set_writeable(true)
+         self.set_writeable(true) if @readonly
          status = syscmd( \
          "git fetch origin && " \
          "git clean -xdff && "  \
@@ -266,7 +265,7 @@ class GitReference
          "git submodule foreach --recursive git reset --hard && " \
          "git submodule update --init --recursive")
          self.checkout
-         self.set_writeable(false)
+         self.set_writeable(false) if @readonly
          if !status
             command_failed = true
             puts "Rinse command failed for repo #{@localdir}, check log"

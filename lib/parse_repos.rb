@@ -7,7 +7,7 @@ grepos_file = $SETTINGS["core"]["repofile"]
 
 ## Options for YAML File
 required_keys = ["url","localdir","branch"]
-valid_config = ["lock","remote_key","parallel"]
+valid_config = ["remote_key"]
 
 
 grepos = GitCollection.new()
@@ -30,29 +30,11 @@ yml_file.each do |key,entry|
          end
 
          case ckey
-         
-            when "parallel"
-               $use_parallel = centry
             when "lock"
-               
+               # TODO implement this
             when "remote_key"
                #SSH KEY stuff
-               key_url = centry
-               remote_key = Tempfile.new('gpack_ssh')
-               #`wget -O #{$remote_key.path} #{key_url} &> /dev/null`
-               
-               begin
-                  download = open(key_url)
-                  IO.copy_stream(download, remote_key.path)
-               rescue
-                  puts "Error with URL #{key_url}\nEnsure this is a valid url and can be reached"
-                  raise
-               end
-               ssh_cmd="ssh -i #{remote_key.path} -q -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no" 
-               
-               $SETTINGS["ssh"]["key"] = remote_key
-               $SETTINGS["ssh"]["cmd"] = ssh_cmd
-               
+               $SETTINGS["ssh"]["key_url"] = centry
          end
          
       end

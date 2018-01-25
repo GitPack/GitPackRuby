@@ -3,6 +3,8 @@ README=%{
 GitPack
 =====
 
+From https://github.com/GitPack/GitPackRuby
+
 Ruby Implementation of git repository manager. Conceptually simular to a package manager like pip, rubygems, ect. GitPack handles the distrubuting of repositories without being tied to a specific language; although it does use python to execute commands. It specifically is designed to control multiple git repository dependancies on a multiple user project. The default behavior is to clone the repositories in a read-only mode, however this can be configured.
 
 * Clones multiple repositories in parallel.
@@ -88,9 +90,8 @@ GpackRepos
        lock: false
       
    config:
-      parallel: true
       lock: true
-      #remote_key: http://allegrogit.allegro.msad/ast/clio-template/raw/master/GitManager/ssh_key/id_rsa
+      remote_key: http://some.valid.url
 
 
 
@@ -98,10 +99,10 @@ Core Commands
 -------------
 
 **gpack cmd [-f] [-nogui] [-persist] [-s]**
-   -f: Force operation
-   -s: Single threaded, useful for debug
-   -nogui: Do not pop up xterm windows
-   -p,-persist: Keep xterm windows open even if command is successful
+   -f,--force: Force operation
+   -s,--single: Single threaded, useful for debug
+   -n,--nogui: Do not pop up xterm windows
+   -p,--persist: Keep xterm windows open even if command is successful
 
 **add [url] [directory] [branch]**
    Adds a repo to the GpackRepos file given ssh URL and local directory

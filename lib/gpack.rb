@@ -13,38 +13,33 @@ puts "Using Git Executable #{`which git`}"
 #end
 
 grepos = parse_gpackrepos()
-
+download_ssh_key()
+set_ssh_cmd()
 
 OptionParser.new do |opts|
-  opts.on("-nogui") do
+  opts.on("-n","--nogui") do
     $SETTINGS["gui"]["show"] = false
   end
-  opts.on("-f") do
+  opts.on("-f","--force") do
     $SETTINGS["core"]["force"] = true
   end
-  opts.on("-persist","-p") do
+  opts.on("-p","--persist") do
     $SETTINGS["gui"]["persist"] = true
   end
-  opts.on("-s") do |v|
+  opts.on("-s","--single") do
     $SETTINGS["core"]["parallel"] = false
   end
 end.parse!
 
-puts $SETTINGS
-
 case ARGV[0]
    when "install"
       grepos.clone
-      grepos.print
-      grepos.check
    when "update"
-      grepos.print
-      grepos.update()
+      grepos.update
    when "check"
       grepos.check
    when "uninstall"
-      grepos.remove()
-      `rm -f .gpackunlock`
+      grepos.remove
    when "archive"
       grepos.archive
    when "lock"
@@ -57,7 +52,8 @@ case ARGV[0]
       grepos.rinse
       grepos.check # check should be clean
    when "reinstall"
-      grepos.reinstall
+      grepos.remove
+      grepos.clone
    when "status"
       grepos.status
    when "list"

@@ -14,7 +14,7 @@ require 'optparse'
 $SETTINGS = { \
    "core" => {"repofile" => "GpackRepos", "force" => false, "parallel" => true},
    "gui" => {"persist" => false, "show" => true},
-   "ssh" => {"key" => false, "command" => false}
+   "ssh" => {"key_url" => false, "key" => false, "command" => false}
 }
 
 class Colors
@@ -37,6 +37,8 @@ README=%{
 =====
 GitPack
 =====
+
+From https://github.com/GitPack/GitPackRuby
 
 Ruby Implementation of git repository manager. Conceptually simular to a package manager like pip, rubygems, ect. GitPack handles the distrubuting of repositories without being tied to a specific language; although it does use python to execute commands. It specifically is designed to control multiple git repository dependancies on a multiple user project. The default behavior is to clone the repositories in a read-only mode, however this can be configured.
 
@@ -123,9 +125,8 @@ GpackRepos
        lock: false
       
    config:
-      parallel: true
       lock: true
-      #remote_key: http://allegrogit.allegro.msad/ast/clio-template/raw/master/GitManager/ssh_key/id_rsa
+      remote_key: http://some.valid.url
 
 
 
@@ -133,10 +134,10 @@ Core Commands
 -------------
 
 **gpack cmd [-f] [-nogui] [-persist] [-s]**
-   -f: Force operation
-   -s: Single threaded, useful for debug
-   -nogui: Do not pop up xterm windows
-   -p,-persist: Keep xterm windows open even if command is successful
+   -f,--force: Force operation
+   -s,--single: Single threaded, useful for debug
+   -n,--nogui: Do not pop up xterm windows
+   -p,--persist: Keep xterm windows open even if command is successful
 
 **add [url] [directory] [branch]**
    Adds a repo to the GpackRepos file given ssh URL and local directory
@@ -242,9 +243,8 @@ class GitReference
       else
          status = syscmd("git clone #{url} #{localdir} --recursive",true,false)
          self.checkout
-         if @readonly
-            self.set_writeable(false)
-         end
+         self.set_writeable(false) if @readonly
+         
          if status != 0
             checks_failed = true
          end
@@ -262,15 +262,11 @@ class GitReference
          checks_failed = self.check(true) # TODO, should this fail if branch is wrong?
          if !checks_failed
             puts "Updating local repository #{@localdir}"
-            if @readonly
-               self.set_writeable(true)
-            end
+            self.set_writeable(true) if @readonly
             syscmd("git fetch origin",true)
             self.checkout
             syscmd("git submodule update --init --recursive")
-            if @readonly
-               self.set_writeable(false)
-            end
+            self.set_writeable(false) if @readonly
             command_failed = false
          else
             command_failed = true
@@ -340,7 +336,6 @@ class GitReference
             else
                bname = rev_parse(@branch)
             end
-            puts bname
             branch_valid = local_branch() == bname
             if !branch_valid
                puts "\tFAIL - Check branch matches #{@branch} rev #{bname}"
@@ -385,20 +380,27 @@ class GitReference
       if cd_first
          cmd = "cd #{@localdir} && #{cmd}"
       end
-      if open_xterm && $SETTINGS["gui"]["show"]
-         if $SETTINGS["gui"]["persist"]
-            hold_opt = "-hold"
-         end
-         cmd = "xterm #{hold_opt} -geometry 90x30 -e \"#{cmd} || echo 'Command Failed, see log above. Press CTRL+C to close window' && sleep infinity\""
-      end
-      cmd_id = Digest::SHA1.hexdigest(cmd).to_s[0..4]
+      
       #Pass env var to Open3
       ssh_cmd = $SETTINGS["ssh"]["cmd"]
       if ssh_cmd
          args = {"GIT_SSH_COMMAND" => ssh_cmd}
+         puts "custom ssh"
       else
          args = {}
       end
+      
+      if open_xterm && $SETTINGS["gui"]["show"]
+         if $SETTINGS["gui"]["persist"]
+            hold_opt = "-hold"
+         end
+         if ssh_cmd
+            cmd = "echo 'GIT_SSH_COMMAND $GIT_SSH_COMMAND' ; #{cmd}"
+         end
+         cmd = "xterm #{hold_opt} -geometry 90x30 -e \"#{cmd} || echo 'Command Failed, see log above. Press CTRL+C to close window' && sleep infinity\""
+      end
+      cmd_id = Digest::SHA1.hexdigest(cmd).to_s[0..4]
+      
       stdout_str,stderr_str,status = Open3.capture3(args,cmd)
       
       puts "="*30+"COMMAND ID #{cmd_id}"+"="*28+"\n"
@@ -421,9 +423,7 @@ class GitReference
       command_failed = false
       if force || !self.check
          puts "Removing local repository #{@localdir}"
-         if @readonly
-            self.set_writeable(true)
-         end
+         self.set_writeable(true) if @readonly || force
          syscmd("rm -rf #{@localdir}",false,false)
          command_failed = false
       else
@@ -438,7 +438,7 @@ class GitReference
          puts "Error with repository #{@localdir}\n\t Repositories can only be rinsed when in readonly mode"
          command_failed = true
       else
-         self.set_writeable(true)
+         self.set_writeable(true) if @readonly
          status = syscmd( \
          "git fetch origin && " \
          "git clean -xdff && "  \
@@ -447,7 +447,7 @@ class GitReference
          "git submodule foreach --recursive git reset --hard && " \
          "git submodule update --init --recursive")
          self.checkout
-         self.set_writeable(false)
+         self.set_writeable(false) if @readonly
          if !status
             command_failed = true
             puts "Rinse command failed for repo #{@localdir}, check log"
@@ -593,10 +593,6 @@ class GitCollection
          puts ("\n"+"="*60+"\nWARNING DURING Rinse!\n"+"="*60).color(Colors::RED)
       end
    end
-   def reinstall()
-      remove()
-      clone()   
-   end
    def check()
       puts "\nChecking Local Repositories....."
       raise_warning = ref_loop(refs,true) { |ref|
@@ -620,6 +616,7 @@ class GitCollection
       end
    end
    def update()
+      print()
       puts "\nUpdating Repositories.....\n\n"
       puts "Please be patient, this can take some time if pulling large commits.....".color(Colors::GREEN)
       raise_warning = ref_loop(refs) { |ref|
@@ -634,8 +631,8 @@ class GitCollection
       if $SETTINGS["core"]["force"] == true
          do_remove = true
       else
-            cont = $stdin.gets.chomp
-            do_remove = cont == "y"
+         cont = $stdin.gets.chomp
+         do_remove = cont == "y"
       end
       
       if do_remove
@@ -644,6 +641,7 @@ class GitCollection
          raise_warning = ref_loop(refs) { |ref|
             ref.remove()
          }
+         `rm -f .gpackunlock`
       else
          puts "Abort Uninstall"
       end
@@ -1279,7 +1277,7 @@ grepos_file = $SETTINGS["core"]["repofile"]
 
 ## Options for YAML File
 required_keys = ["url","localdir","branch"]
-valid_config = ["lock","remote_key","parallel"]
+valid_config = ["remote_key"]
 
 
 grepos = GitCollection.new()
@@ -1302,29 +1300,11 @@ yml_file.each do |key,entry|
          end
 
          case ckey
-         
-            when "parallel"
-               $use_parallel = centry
             when "lock"
-               
+               # TODO implement this
             when "remote_key"
                #SSH KEY stuff
-               key_url = centry
-               remote_key = Tempfile.new('gpack_ssh')
-               #`wget -O #{$remote_key.path} #{key_url} &> /dev/null`
-               
-               begin
-                  download = open(key_url)
-                  IO.copy_stream(download, remote_key.path)
-               rescue
-                  puts "Error with URL #{key_url}\nEnsure this is a valid url and can be reached"
-                  raise
-               end
-               ssh_cmd="ssh -i #{remote_key.path} -q -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no" 
-               
-               $SETTINGS["ssh"]["key"] = remote_key
-               $SETTINGS["ssh"]["cmd"] = ssh_cmd
-               
+               $SETTINGS["ssh"]["key_url"] = centry
          end
          
       end
@@ -1359,6 +1339,33 @@ return grepos
 
 end
 
+def download_ssh_key()
+   key_url = $SETTINGS["ssh"]["key_url"]
+   if key_url
+      remote_key = Tempfile.new('gpack_ssh') # TODO make this readable only by user      
+      begin
+         download = open(key_url)
+         IO.copy_stream(download, remote_key.path)
+      rescue
+         puts "Error with URL #{key_url}\nEnsure this is a valid url and can be reached"
+         raise
+      end
+      $SETTINGS["ssh"]["key"] = remote_key
+
+   end
+end
+
+def set_ssh_cmd()
+   remote_key = $SETTINGS["ssh"]["key"] 
+   id_cmd = ""
+   id_cmd = "-i #{remote_key.path} " if remote_key
+   
+   ssh_cmd="ssh #{id_cmd}-q -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no" 
+
+   $SETTINGS["ssh"]["cmd"] = ssh_cmd
+   
+end
+
 puts "Using Git Executable #{`which git`}"
 
 ## TODO - Check propery ruby and git versions
@@ -1373,38 +1380,33 @@ puts "Using Git Executable #{`which git`}"
 #end
 
 grepos = parse_gpackrepos()
-
+download_ssh_key()
+set_ssh_cmd()
 
 OptionParser.new do |opts|
-  opts.on("-nogui") do
+  opts.on("-n","--nogui") do
     $SETTINGS["gui"]["show"] = false
   end
-  opts.on("-f") do
+  opts.on("-f","--force") do
     $SETTINGS["core"]["force"] = true
   end
-  opts.on("-persist","-p") do
+  opts.on("-p","--persist") do
     $SETTINGS["gui"]["persist"] = true
   end
-  opts.on("-s") do |v|
+  opts.on("-s","--single") do
     $SETTINGS["core"]["parallel"] = false
   end
 end.parse!
 
-puts $SETTINGS
-
 case ARGV[0]
    when "install"
       grepos.clone
-      grepos.print
-      grepos.check
    when "update"
-      grepos.print
-      grepos.update()
+      grepos.update
    when "check"
       grepos.check
    when "uninstall"
-      grepos.remove()
-      `rm -f .gpackunlock`
+      grepos.remove
    when "archive"
       grepos.archive
    when "lock"
@@ -1417,7 +1419,8 @@ case ARGV[0]
       grepos.rinse
       grepos.check # check should be clean
    when "reinstall"
-      grepos.reinstall
+      grepos.remove
+      grepos.clone
    when "status"
       grepos.status
    when "list"

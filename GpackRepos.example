@@ -28,7 +28,6 @@ test1_tag:
     branch: v2.0
     lock: false
    
-config:
-   parallel: true
-   lock: true
-   #remote_key: http://allegrogit.allegro.msad/ast/clio-template/raw/master/GitManager/ssh_key/id_rsa
+#config:
+#   lock: true
+#   remote_key: http://some.valid.url
