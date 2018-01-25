@@ -134,10 +134,10 @@ Core Commands
 -------------
 
 **gpack cmd [-f] [-nogui] [-persist] [-s]**
-   -f,--force: Force operation
-   -s,--single: Single threaded, useful for debug
-   -n,--nogui: Do not pop up xterm windows
-   -p,--persist: Keep xterm windows open even if command is successful
+   * -f,--force: Force operation
+   * -s,--single: Single threaded, useful for debug
+   * -n,--nogui: Do not pop up xterm windows
+   * -p,--persist: Keep xterm windows open even if command is successful
 
 **add [url] [directory] [branch]**
    Adds a repo to the GpackRepos file given ssh URL and local directory
