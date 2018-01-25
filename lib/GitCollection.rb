@@ -22,7 +22,7 @@ class GitCollection
          ref.archive
       }
       if raise_warning
-         puts ("\n"+"="*60+"\nWARNING DURING CLONING!\n\tSome repositories already existed and failed checks.\n\tReview this log or run 'gpack check' to see detailed information\n"+"="*60).color(Colors::RED)
+         puts "\n"+("="*60+"\nWARNING DURING CLONING!\n\tSome repositories already existed and failed checks.\n\tReview this log or run 'gpack check' to see detailed information\n"+"="*60).color(Colors::RED)
       end
    end   
    def clone()
@@ -31,7 +31,7 @@ class GitCollection
          ref.clone
       }
       if raise_warning
-         puts ("\n"+"="*60+"\nWARNING DURING CLONING!\n\tSome repositories already existed and failed checks.\n\tReview this log or run 'gpack check' to see detailed information\n"+"="*60).color(Colors::RED)
+         puts "\n"+("="*60+"\nWARNING DURING CLONING!\n\tSome repositories already existed and failed checks.\n\tReview this log or run 'gpack check' to see detailed information\n"+"="*60).color(Colors::RED)
       end
       print()
       check()
@@ -51,10 +51,10 @@ class GitCollection
          ref.check
       }
       if raise_warning
-         puts ("\n"+"="*60+"\nWARNINGS FOUND DURING CHECK!\n\tReview this log to see detailed information\n" \
+         puts "\n"+("="*60+"\nWARNINGS FOUND DURING CHECK!\n\tReview this log to see detailed information\n" \
             "\tThe following commands can be run to help debug:\n" \
             "\t\tgpack status #Shows the current git status\n" \
-            "\t\tgpack rinse #Removes all local changes and untracked files,use with caution" \
+            "\t\tgpack rinse #Removes all local changes and untracked files,use with caution\n" \
             +"="*60).color(Colors::RED)
       end
    end
@@ -64,7 +64,7 @@ class GitCollection
          ref.status
       }
       if raise_warning
-         puts ("\n"+"="*60+"\nWARNINGS FOUND DURING CHECK!\n\tReview this log to see detailed information\n"+"="*60).color(Colors::RED)
+         puts "\n"+("="*60+"\nWARNINGS FOUND DURING CHECK!\n\tReview this log to see detailed information\n"+"="*60).color(Colors::RED)
       end
    end
    def update()
@@ -75,7 +75,7 @@ class GitCollection
          ref.update()
       }
       if raise_warning
-         puts ("\n"+"="*60+"\nWARNING DURING UPDATE!\n\tSome repositories failed checks and were not updated.\n\tReview this log or run 'gpack check' to see detailed information\n"+"="*60).color(Colors::RED)
+         puts "\n"+("="*60+"\nWARNING DURING UPDATE!\n\tSome repositories failed checks and were not updated.\n\tReview this log or run 'gpack check' to see detailed information\n"+"="*60).color(Colors::RED)
       end
    end
    def remove()
@@ -99,7 +99,7 @@ class GitCollection
       end
       
       if raise_warning
-         puts ("\n"+"="*60+"\nWARNINGS FOUND DURING REMOVAL!\n\tReview this log to see detailed information\n"+"="*60).color(Colors::RED)
+         puts "\n"+("="*60+"\nWARNINGS FOUND DURING REMOVAL!\n\tReview this log to see detailed information\n"+"="*60).color(Colors::RED)
       end
    end
    def set_writeable(tf)

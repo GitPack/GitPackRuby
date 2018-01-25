@@ -156,7 +156,7 @@ class GitReference
             end
             branch_valid = local_branch() == bname
             if !branch_valid
-               puts "\tFAIL - Check branch matches #{@branch} rev #{bname}"
+               puts "\tFAIL - Check branch matches #{@branch} rev #{bname}".color(Colors::RED)
                puts "\t\tLocal  Branch abbrev    : '#{rev_parse("HEAD",true)}'"
                puts "\t\tLocal  Branch SHA       : '#{rev_parse("HEAD")}'"
                puts "\t\tSpecified Branch        :    '#{@branch}'"
@@ -169,7 +169,7 @@ class GitReference
          if local_url() == @url
             #puts "\tPASS - Check remote url matches #{@url}"
          else
-            puts "\tFAIL - Check remote url matches #{@url}"
+            puts "\tFAIL - Check remote url matches #{@url}".color(Colors::RED)
             puts "\t\tLocal URL #{local_url()}'"
             puts "\t\tRemote URL #{@url}'"
             checks_failed = true
@@ -178,17 +178,17 @@ class GitReference
          if local_clean()
             #puts "\tPASS - Check local repository clean"
          else
-            puts "\tFAIL - Check local repository clean"
+            puts "\tFAIL - Check local repository clean".color(Colors::RED)
             checks_failed = true
          end
          
          if !checks_failed
             puts "PASS - All checks on local repository #{@localdir}"
          else
-            puts "FAIL - All checks on local repository #{@localdir}. See previous log for info on which check failed"
+            puts "FAIL - All checks on local repository #{@localdir}. See previous log for info on which check failed".color(Colors::RED)
          end
       else
-         puts "\tFAIL - Check local repository exists"
+         puts "\tFAIL - Check local repository exists".color(Colors::RED)
          checks_failed = true
       end
       return checks_failed
