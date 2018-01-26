@@ -14,7 +14,7 @@ require 'optparse'
 $SETTINGS = { \
    "core" => {"repofile" => "GpackRepos", "force" => false, "parallel" => true},
    "gui" => {"persist" => false, "show" => true},
-   "ssh" => {"key_url" => false, "key" => false, "command" => false}
+   "ssh" => {"key_url" => false, "key" => false, "cmd" => false}
 }
 
 class Colors
@@ -123,10 +123,12 @@ GpackRepos
        localdir: ./repos/test1_tag
        branch: v2.0
        lock: false
-      
-   config:
-      lock: true
-      remote_key: http://some.valid.url
+   
+# Options for Configuration
+#   config:
+#      lock: true # Option to disable read-only by default
+#      remote_key: http://some.valid.url # Use an external ssh key
+#      ssh_command: ssh -v # Custom SSH arguments passed to $GIT_SSH_COMMAND
 
 
 
@@ -164,6 +166,7 @@ Core Commands
    Allows writing to repo, appends to .gpacklock file
 **update**
    Updates the repositories -f will install if not already installed
+
 
 Details
 -----------
@@ -1277,7 +1280,7 @@ grepos_file = $SETTINGS["core"]["repofile"]
 
 ## Options for YAML File
 required_keys = ["url","localdir","branch"]
-valid_config = ["remote_key"]
+valid_config = ["remote_key","ssh_command"]
 
 
 grepos = GitCollection.new()
@@ -1305,6 +1308,9 @@ yml_file.each do |key,entry|
             when "remote_key"
                #SSH KEY stuff
                $SETTINGS["ssh"]["key_url"] = centry
+            when "ssh_command"
+               # Arguements to ssh
+               $SETTINGS["ssh"]["cmd"] = centry
          end
          
       end
@@ -1357,12 +1363,18 @@ end
 
 def set_ssh_cmd()
    remote_key = $SETTINGS["ssh"]["key"] 
-   id_cmd = ""
-   id_cmd = "-i #{remote_key.path} " if remote_key
    
-   ssh_cmd="ssh #{id_cmd}-q -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no" 
+   if remote_key
+      id_arg = " -i #{remote_key.path}" 
 
-   $SETTINGS["ssh"]["cmd"] = ssh_cmd
+      ssh_cmd=$SETTINGS["ssh"]["cmd"]
+      if $SETTINGS["ssh"]["cmd"]
+         ssh_cmd="#{ssh_cmd}#{id_arg}" 
+      else
+         ssh_cmd="ssh #{id_arg}"
+      end
+      $SETTINGS["ssh"]["cmd"] = ssh_cmd
+   end
    
 end
 

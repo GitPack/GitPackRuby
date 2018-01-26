@@ -7,7 +7,7 @@ grepos_file = $SETTINGS["core"]["repofile"]
 
 ## Options for YAML File
 required_keys = ["url","localdir","branch"]
-valid_config = ["remote_key"]
+valid_config = ["remote_key","ssh_command"]
 
 
 grepos = GitCollection.new()
@@ -35,6 +35,9 @@ yml_file.each do |key,entry|
             when "remote_key"
                #SSH KEY stuff
                $SETTINGS["ssh"]["key_url"] = centry
+            when "ssh_command"
+               # Arguements to ssh
+               $SETTINGS["ssh"]["cmd"] = centry
          end
          
       end

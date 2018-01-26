@@ -17,11 +17,17 @@ end
 
 def set_ssh_cmd()
    remote_key = $SETTINGS["ssh"]["key"] 
-   id_cmd = ""
-   id_cmd = "-i #{remote_key.path} " if remote_key
    
-   ssh_cmd="ssh #{id_cmd}-q -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no" 
+   if remote_key
+      id_arg = " -i #{remote_key.path}" 
 
-   $SETTINGS["ssh"]["cmd"] = ssh_cmd
+      ssh_cmd=$SETTINGS["ssh"]["cmd"]
+      if $SETTINGS["ssh"]["cmd"]
+         ssh_cmd="#{ssh_cmd}#{id_arg}" 
+      else
+         ssh_cmd="ssh #{id_arg}"
+      end
+      $SETTINGS["ssh"]["cmd"] = ssh_cmd
+   end
    
 end

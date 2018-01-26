@@ -14,7 +14,7 @@ require 'optparse'
 $SETTINGS = { \
    "core" => {"repofile" => "GpackRepos", "force" => false, "parallel" => true},
    "gui" => {"persist" => false, "show" => true},
-   "ssh" => {"key_url" => false, "key" => false, "command" => false}
+   "ssh" => {"key_url" => false, "key" => false, "cmd" => false}
 }
 
 class Colors

@@ -2,3 +2,8 @@
 /testdir/testrepos
 /ssh_key
 
+# Ignore dirs for a custom header build
+/GitPackRubyCustom
+/lib/headers_custom.rb
+/gpack_concat_custom.rb
+/testdir/.byebug_history

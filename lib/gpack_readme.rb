@@ -88,10 +88,12 @@ GpackRepos
        localdir: ./repos/test1_tag
        branch: v2.0
        lock: false
-      
-   config:
-      lock: true
-      remote_key: http://some.valid.url
+   
+# Options for Configuration
+#   config:
+#      lock: true # Option to disable read-only by default
+#      remote_key: http://some.valid.url # Use an external ssh key
+#      ssh_command: ssh -v # Custom SSH arguments passed to $GIT_SSH_COMMAND
 
 
 
@@ -129,6 +131,7 @@ Core Commands
    Allows writing to repo, appends to .gpacklock file
 **update**
    Updates the repositories -f will install if not already installed
+
 
 Details
 -----------
