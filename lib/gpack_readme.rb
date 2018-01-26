@@ -1,6 +1,6 @@
 README=%{
 =====
-GitPack
+GitPack v2.0
 =====
 
 From https://github.com/GitPack/GitPackRuby
