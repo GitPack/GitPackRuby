@@ -40,7 +40,7 @@ GitPack
 
 From https://github.com/GitPack/GitPackRuby
 
-Ruby Implementation of git repository manager. Conceptually simular to a package manager like pip, rubygems, ect. GitPack handles the distrubuting of repositories without being tied to a specific language; although it does use python to execute commands. It specifically is designed to control multiple git repository dependancies on a multiple user project. The default behavior is to clone the repositories in a read-only mode, however this can be configured.
+Ruby Implementation of git repository manager. Conceptually simular to a tool like bundle, gradel, ect. GitPack handles the distrubuting of Git repositories without being tied to a specific language; although it does use ruby to execute commands. GitPack specifically is intended to control multiple git repository dependancies on a project where it is required that multiple user's point to the same commit/branch/tag. GitPack simplifies the usage of Git and can be especially beneficial when working with teams where not every user knows how to manage a git repository. GitPack uses a single file "GpackRepos" to specifiy the URL and local destination of repositories that it should manage.
 
 * Clones multiple repositories in parallel.
 * Controls read-only permissions on cloned repositories.
@@ -176,6 +176,9 @@ Details
 Future Improvements
 -----
 * GitPack is not Git LFS compatible at the moment. Merge requests with this feature would be accepted.
+* Add command is not implemented
+* Allow GitPack commands to operate on a per-repository basis
+* Lock/Unlock of individual repositores. (Python version has this)
    
 Developers
 -----
@@ -368,7 +371,7 @@ class GitReference
          end
          
          if !checks_failed
-            puts "PASS - All checks on local repository #{@localdir}"
+            puts "PASS - All checks on local repository #{@localdir}".color(Colors::GREEN)
          else
             puts "FAIL - All checks on local repository #{@localdir}. See previous log for info on which check failed".color(Colors::RED)
          end
@@ -607,6 +610,8 @@ class GitCollection
             "\t\tgpack status #Shows the current git status\n" \
             "\t\tgpack rinse #Removes all local changes and untracked files,use with caution\n" \
             +"="*60).color(Colors::RED)
+      else
+         puts "\n"+("All checks passed!").color(Colors::GREEN)
       end
    end
    def status()

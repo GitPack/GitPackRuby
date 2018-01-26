@@ -56,6 +56,8 @@ class GitCollection
             "\t\tgpack status #Shows the current git status\n" \
             "\t\tgpack rinse #Removes all local changes and untracked files,use with caution\n" \
             +"="*60).color(Colors::RED)
+      else
+         puts "\n"+("All checks passed!").color(Colors::GREEN)
       end
    end
    def status()
