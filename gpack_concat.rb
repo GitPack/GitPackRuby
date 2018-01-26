@@ -373,7 +373,7 @@ class GitReference
          if !checks_failed
             puts "PASS - All checks on local repository #{@localdir}".color(Colors::GREEN)
          else
-            puts "FAIL - All checks on local repository #{@localdir}. See previous log for info on which check failed".color(Colors::RED)
+            puts "CHECK FAILURE on local repository #{@localdir}. See previous log for info on which check failed".color(Colors::RED)
          end
       else
          puts "\tFAIL - Check local repository exists".color(Colors::RED)
