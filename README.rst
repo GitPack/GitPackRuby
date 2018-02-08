@@ -104,6 +104,7 @@ Core Commands
    * -s,--single: Single threaded, useful for debug
    * -n,--nogui: Do not pop up xterm windows
    * -p,--persist: Keep xterm windows open even if command is successful
+   * -i: Force install (applies only to update command)
 
 **add [url] [directory] [branch]**
    Adds a repo to the GpackRepos file given ssh URL and local directory
@@ -128,7 +129,7 @@ Core Commands
    Makes repo read-only, removes from .gpacklock file
 **unlock**
    Allows writing to repo, appends to .gpacklock file
-**update**
+**update [-i] [-f]**
    Updates the repositories -f will install if not already installed
 
 

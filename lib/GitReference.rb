@@ -73,7 +73,7 @@ class GitReference
    end
    
    def update()
-      force_clone = $SETTINGS["core"]["force"]
+      force_clone = $SETTINGS["core"]["force"] || $SETTINGS["core"]["install"]
       command_failed = false
       # Returns true if falure
       if local_exists

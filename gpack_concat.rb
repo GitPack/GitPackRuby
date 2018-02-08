@@ -12,7 +12,7 @@ require 'fileutils'
 require 'optparse'
 
 $SETTINGS = { \
-   "core" => {"repofile" => "GpackRepos", "force" => false, "parallel" => true},
+   "core" => {"repofile" => "GpackRepos", "force" => false, "parallel" => true, "install" => false},
    "gui" => {"persist" => false, "show" => true},
    "ssh" => {"key_url" => false, "key" => false, "cmd" => false}
 }
@@ -140,6 +140,7 @@ Core Commands
    * -s,--single: Single threaded, useful for debug
    * -n,--nogui: Do not pop up xterm windows
    * -p,--persist: Keep xterm windows open even if command is successful
+   * -i: Force install (applies only to update command)
 
 **add [url] [directory] [branch]**
    Adds a repo to the GpackRepos file given ssh URL and local directory
@@ -164,7 +165,7 @@ Core Commands
    Makes repo read-only, removes from .gpacklock file
 **unlock**
    Allows writing to repo, appends to .gpacklock file
-**update**
+**update [-i] [-f]**
    Updates the repositories -f will install if not already installed
 
 
@@ -261,7 +262,7 @@ class GitReference
    end
    
    def update()
-      force_clone = $SETTINGS["core"]["force"]
+      force_clone = $SETTINGS["core"]["force"] || $SETTINGS["core"]["install"]
       command_failed = false
       # Returns true if falure
       if local_exists
@@ -1409,6 +1410,9 @@ OptionParser.new do |opts|
   end
   opts.on("-p","--persist") do
     $SETTINGS["gui"]["persist"] = true
+  end
+  opts.on("-i") do
+    $SETTINGS["core"]["install"] = true
   end
   opts.on("-s","--single") do
     $SETTINGS["core"]["parallel"] = false

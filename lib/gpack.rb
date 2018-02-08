@@ -26,6 +26,9 @@ OptionParser.new do |opts|
   opts.on("-p","--persist") do
     $SETTINGS["gui"]["persist"] = true
   end
+  opts.on("-i") do
+    $SETTINGS["core"]["install"] = true
+  end
   opts.on("-s","--single") do
     $SETTINGS["core"]["parallel"] = false
   end
