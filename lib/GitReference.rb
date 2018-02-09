@@ -59,7 +59,7 @@ class GitReference
          puts "Cloning Warning - Directory #{localdir} already exists! Running checks instead"
          checks_failed = self.check()
       else
-         status = syscmd("git clone #{url} #{localdir} --recursive",true,false)
+         status = syscmd("git clone -b #{branch} #{url} #{localdir} --recursive",true,false)
          self.checkout
          self.set_writeable(false) if @readonly
          
