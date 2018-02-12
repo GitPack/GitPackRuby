@@ -197,5 +197,13 @@ try_merge(test)
 
 # ==================cleanup==================
 
+## Delete branches
+for test in 1..5
+t = test.to_s
+repo_loop(t,repolist) { |r|
+   cmd("git push origin --delete #{r['bname']}")
+}
+end
+
 
 $logfile.close
