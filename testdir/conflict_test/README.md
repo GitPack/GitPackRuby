@@ -1,6 +1,14 @@
 ## Conflict test case
 
-Generate a known merge conflict. Several possibilities
+Testing for the solution proposed here - https://stackoverflow.com/questions/6335717/can-git-tell-me-if-a-merge-will-conflict-without-actually-merging
+
+In particular
+```
+git format-patch $(git merge-base branch1 branch2)..branch2 --stdout | git apply --check -
+
+```
+
+Generate a known merge conflict. Several possibilities:
 
 * In all cases: modified fileB, unmanaged fileC
 1. branchA modify fileA -- branchB modify fileB
