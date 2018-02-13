@@ -12,3 +12,6 @@ Gem::Specification.new do |s|
   s.license       = 'GPL-3.0'
   s.executables << 'gpack'
 end
+
+
+gem "gpack", :git => "git@github.com:GitPack/GitPackRuby.git"

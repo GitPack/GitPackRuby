@@ -1,4 +1,5 @@
 #!/usr/bin/env ruby 
+$VERBOSE=nil
 
 require 'tempfile'
 require 'open3'
@@ -15,3 +16,4 @@ begin
 rescue LoadError
   # Don't crash if debug gem isn't there
 end
+
