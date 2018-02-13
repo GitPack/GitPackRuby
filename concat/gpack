@@ -1,0 +1,24 @@
+#!/bin/bash
+
+url=https://raw.githubusercontent.com/GitPack/GitPackRuby/master/gpack_concat.rb
+
+#Pull the script from the main repo into a temp file
+tempfile=$(mktemp /tmp/gpack_XXXXX.rb)
+
+ 
+if curl --output /dev/null --silent --head --fail "$url"
+then
+    echo "Downloading latest gpack from $url"
+else
+    echo "Error URL $url Does Not Exist or is not reachable"
+fi
+
+wget -O $tempfile $url &> /dev/null
+
+
+if [ ! -e $tempfile ]; then
+   echo "Error, unable to create $tempfile. Check that you can write to this path or that the $url exists"
+else
+   ruby $tempfile "$@"
+   rm $tempfile
+fi
