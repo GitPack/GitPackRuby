@@ -1,16 +1,6 @@
 #!/bin/env ruby
 $VERBOSE=nil
 
-require 'tempfile'
-require 'open3'
-require 'yaml'
-require 'open-uri'
-require 'digest/sha1'
-require 'rdoc'
-require 'find'
-require 'fileutils'
-require 'optparse'
-
 $SETTINGS = { \
    "core" => {"repofile" => "GpackRepos", "force" => false, "parallel" => true, "install" => false},
    "gui" => {"persist" => false, "show" => true},
