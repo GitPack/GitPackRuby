@@ -14,6 +14,8 @@ puts "Using Git Executable #{`which git`}"
 #   exit
 #end
 
+gpack_prompt()
+
 grepos = parse_gpackrepos()
 download_ssh_key()
 set_ssh_cmd()

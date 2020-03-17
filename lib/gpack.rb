@@ -7,6 +7,7 @@ require 'rdoc'
 require 'find'
 require 'fileutils'
 require 'optparse'
+require 'timeout'
 
 begin
   require 'byebug'
@@ -16,6 +17,7 @@ end
 
 require "gpack/config/headers.rb"
 require "gpack/core/gpack_readme.rb"
+require "gpack/core/prompt.rb"
 require "gpack/core/GitReference.rb"
 require "gpack/core/GitCollection.rb"
 require "gpack/core/parallel.rb"
