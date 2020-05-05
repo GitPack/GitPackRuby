@@ -111,6 +111,7 @@ Core Commands
    * -n,--nogui: Do not pop up xterm windows
    * -p,--persist: Keep xterm windows open even if command is successful
    * -i: Force install (applies only to update command)
+   * --skip-prompt: Do not prompt the user to run gpack
 
 **add [url] [directory] [branch]**
    Adds a repo to the GpackRepos file given ssh URL and local directory

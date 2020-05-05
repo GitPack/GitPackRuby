@@ -14,11 +14,7 @@ puts "Using Git Executable #{`which git`}"
 #   exit
 #end
 
-gpack_prompt()
-
-grepos = parse_gpackrepos()
-download_ssh_key()
-set_ssh_cmd()
+skip_prompt = false
 
 OptionParser.new do |opts|
   opts.on("-n","--nogui") do
@@ -36,7 +32,19 @@ OptionParser.new do |opts|
   opts.on("-s","--single") do
     $SETTINGS["core"]["parallel"] = false
   end
+  opts.on("--skip-prompt") do
+    skip_prompt = true
+  end
 end.parse!
+
+
+if !skip_prompt
+  gpack_prompt()
+end
+
+grepos = parse_gpackrepos()
+download_ssh_key()
+set_ssh_cmd()
 
 case opts[0]
    when "install"
